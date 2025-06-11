@@ -1,5 +1,5 @@
 <template>
-  <div class="tag-selector" v-show="show">
+  <div class="tag-selector">
     <div class="tag-level1">
       <el-tag
         size="large"
@@ -43,10 +43,6 @@
 
 <script setup>
   const props = defineProps({
-    show: {
-      type: Boolean,
-      default: true
-    },
     // 数据源
     tagsData: {
       type: Array,
@@ -162,9 +158,9 @@
   }
 
   .el-tag--info {
-    background-color: #fff;
     color: #666;
-    border: none;
+    background-color: #fff;
+    border-color: #fff;
     &:hover {
       background-color: #f4f4f4;
     }

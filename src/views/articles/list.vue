@@ -1,6 +1,6 @@
 <template>
   <el-card shadow="never">
-    <el-row style="margin-bottom: 20px" justify="space-between">
+    <el-row justify="space-between">
       <el-form inline :model="searchForm">
         <el-form-item>
           <el-input v-model="searchForm.name" placeholder="请输入关键词" />
@@ -24,17 +24,18 @@
         <el-button plain @click="showTags = !showTags">
           {{ showTags ? '隐藏' : '显示' }}菜单
         </el-button>
-        <el-button @click="goPage">分类管理</el-button>
+        <el-button type="primary" plain @click="goPage">分类管理</el-button>
         <el-button type="primary" @click="drawer = true">创建文章</el-button>
       </div>
     </el-row>
 
-    <TagSelector
-      :show="showTags"
-      :tagsData="tagsData"
-      :initialLevel="selectedParams"
-      @change="handleTagChange"
-    />
+    <div style="margin-top: 20px" v-show="showTags">
+      <TagSelector
+        :tagsData="tagsData"
+        :initialLevel="selectedParams"
+        @change="handleTagChange"
+      />
+    </div>
   </el-card>
 
   <div style="margin-top: 20px">
@@ -269,8 +270,6 @@
     router.push('/articles/categories');
   };
 
-  const drawer = ref(false);
-
   const tableData = ref([{ status: 1 }]);
   const pagination = reactive({
     layout: 'total, prev, pager, next',
@@ -293,6 +292,7 @@
     handleRefresh();
   };
 
+  const drawer = ref(false);
   const formRef = ref(null);
   const form = ref({
     name: '',
