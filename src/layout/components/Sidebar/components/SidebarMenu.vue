@@ -5,7 +5,7 @@
     background-color="#343d44"
     text-color="#fff"
     active-text-color="#409eff"
-    router
+    @select="handleSelect"
   >
     <!-- logo -->
     <div class="logo el-menu-item" @click="toggleClick">
@@ -28,6 +28,7 @@
 <script setup>
   import SidebarMenuItem from './SidebarMenuItem.vue';
   import { useAppStore } from '@/store/index';
+  import { isExternal } from '@/utils/index';
 
   const props = defineProps({
     menus: {
@@ -39,12 +40,17 @@
     }
   });
 
+  const router = useRouter();
   const currentRoute = useRoute();
 
   const appStore = useAppStore();
 
   const toggleClick = () => {
     appStore.toggleSidebar();
+  };
+
+  const handleSelect = (index, indexPath) => {
+    isExternal(index) ? window.open(index, '_blank') : router.push(index);
   };
 </script>
 

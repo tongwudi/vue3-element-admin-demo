@@ -6,8 +6,8 @@
       :index="resolvePath(onlyOneChild.path)"
     >
       <!-- 菜单图标 -->
-      <el-icon v-if="item.meta?.icon">
-        <component :is="item.meta.icon || 'Document'" />
+      <el-icon>
+        <component :is="item.meta?.icon || 'Document'" />
       </el-icon>
       <!-- 菜单标题 -->
       <span v-if="onlyOneChild.meta?.title || item.meta?.title">
@@ -19,8 +19,8 @@
     <el-sub-menu v-else :index="resolvePath(item.path)" teleported>
       <template #title>
         <!-- 菜单图标 -->
-        <el-icon v-if="item.meta?.icon">
-          <component :is="item.meta.icon || 'Document'" />
+        <el-icon>
+          <component :is="item.meta?.icon || 'Document'" />
         </el-icon>
         <!-- 菜单标题 -->
         <span v-if="item.meta?.title">
@@ -32,13 +32,17 @@
         v-for="child in item.children"
         :key="child.path"
         :item="child"
-        :base-path="item.path"
+        :is-nest="true"
+        :base-path="resolvePath(child.path)"
       />
     </el-sub-menu>
   </template>
 </template>
 
 <script setup>
+  import path from 'path-browserify';
+  import { isExternal } from '@/utils/index';
+
   defineOptions({
     name: 'SidebarMenuItem',
     inheritAttrs: false
@@ -48,6 +52,10 @@
     item: {
       type: Object,
       required: true
+    },
+    isNest: {
+      type: Boolean,
+      default: false
     },
     basePath: {
       type: String
@@ -81,7 +89,7 @@
 
     // 无子节点时，父节点设置为唯一显示节点
     if (showingChildren.length === 0) {
-      onlyOneChild.value = { ...parent };
+      onlyOneChild.value = { ...parent, path: '' };
       return true;
     }
     return false;
@@ -94,10 +102,9 @@
    * @returns 绝对路径
    */
   function resolvePath(routePath) {
-    return routePath.includes('/')
-      ? routePath
-      : props.basePath == '/'
-      ? '/' + routePath
-      : props.basePath + '/' + routePath;
+    if (isExternal(routePath)) return routePath;
+    if (isExternal(props.basePath)) return props.basePath;
+    // 拼接父路径和当前路径
+    return path.resolve(props.basePath, routePath);
   }
 </script>

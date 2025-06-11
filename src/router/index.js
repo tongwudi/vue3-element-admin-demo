@@ -1,6 +1,7 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { PatchFlags } from 'element-plus/es/utils/index.mjs';
+import { createRouter, createWebHashHistory } from 'vue-router';
 
-const Layout = () => import('@/layout/index.vue')
+const Layout = () => import('@/layout/index.vue');
 
 export const constantRoutes = [
   {
@@ -19,10 +20,10 @@ export const constantRoutes = [
         meta: { title: '控制台', icon: '' }
       },
       {
-        path: "404",
-        component: () => import("@/views/error/404.vue"),
-        meta: { hidden: true },
-      },
+        path: '404',
+        component: () => import('@/views/error/404.vue'),
+        meta: { hidden: true }
+      }
     ]
   },
   {
@@ -32,7 +33,19 @@ export const constantRoutes = [
       {
         path: 'index',
         component: () => import('@/views/member/index.vue'),
-        meta: { title: '人员管理' },
+        meta: { title: '人员管理' }
+      }
+    ]
+  },
+  {
+    path: '/doc',
+    component: Layout,
+    children: [
+      {
+        path: 'https://juejin.cn/post/7228990409909108793',
+        meta: {
+          title: '平台文档(外链)'
+        }
       }
     ]
   },
@@ -43,7 +56,7 @@ export const constantRoutes = [
       {
         path: 'index',
         component: () => import('@/views/media-library/index.vue'),
-        meta: { title: '媒体库' },
+        meta: { title: '媒体库' }
       }
     ]
   },
@@ -55,12 +68,12 @@ export const constantRoutes = [
       {
         path: 'list',
         component: () => import('@/views/questions/list.vue'),
-        meta: { title: '问答列表' },
+        meta: { title: '问答列表' }
       },
       {
         path: 'categories',
         component: () => import('@/views/questions/categories.vue'),
-        meta: { title: '分类管理' },
+        meta: { title: '分类管理' }
       }
     ]
   },
@@ -72,20 +85,20 @@ export const constantRoutes = [
       {
         path: 'list',
         component: () => import('@/views/articles/list.vue'),
-        meta: { title: '文章列表' },
+        meta: { title: '文章列表' }
       },
       {
         path: 'categories',
         component: () => import('@/views/articles/categories.vue'),
-        meta: { title: '分类管理' },
+        meta: { title: '分类管理' }
       }
     ]
   }
-]
+];
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: constantRoutes
-})
+});
 
-export default router
+export default router;
