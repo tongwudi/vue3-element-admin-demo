@@ -1,19 +1,23 @@
 <template>
-  <div class="card-box categories" shadow="never">
-    <el-row justify="space-between">
-      <!-- <el-button :icon="ArrowLeft">返回</el-button> -->
-      <el-link :icon="ArrowLeft" underline="never" @click="router.back()">
-        返回
-      </el-link>
-      <el-button type="primary" :icon="Plus" @click="handleAdd">
-        添加分类
-      </el-button>
-    </el-row>
-    <el-divider />
+  <el-card body-style="height: calc(100% - 69px);">
+    <template #header>
+      <el-row justify="space-between">
+        <!-- <el-button :icon="ArrowLeft">返回</el-button> -->
+        <el-link :icon="ArrowLeft" underline="never" @click="router.back()">
+          返回
+        </el-link>
+        <el-button type="primary" :icon="Plus" @click="handleAdd">
+          添加分类
+        </el-button>
+      </el-row>
+    </template>
 
-    <el-row class="categories-content" :gutter="20">
-      <el-col :span="12">
-        <el-card shadow="hover">
+    <div class="row-fixed">
+      <div class="col-flex">
+        <el-card
+          shadow="hover"
+          body-style="height: calc(100% - 61px);overflow: auto;"
+        >
           <template #header>分类列表</template>
           <el-tree
             ref="treeRef"
@@ -46,8 +50,8 @@
             </template>
           </el-tree>
         </el-card>
-      </el-col>
-      <el-col :span="12">
+      </div>
+      <div class="col-flex">
         <el-card
           shadow="never"
           style="background-color: #f5f8fa"
@@ -105,9 +109,9 @@
             </el-form-item>
           </el-form>
         </el-card>
-      </el-col>
-    </el-row>
-  </div>
+      </div>
+    </div>
+  </el-card>
 </template>
 
 <script setup>
@@ -228,13 +232,6 @@
 </script>
 
 <style lang="scss" scoped>
-  .categories {
-    height: calc(100% - 34px);
-    flex-direction: column;
-    &-content {
-      flex: 1;
-    }
-  }
   .custom-tree-node {
     flex: 1;
     display: flex;

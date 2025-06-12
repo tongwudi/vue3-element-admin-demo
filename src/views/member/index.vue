@@ -1,12 +1,12 @@
 <template>
-  <el-tabs v-model="activeName" type="border-card" @tab-click="handleClick">
+  <el-tabs type="border-card" v-model="activeName" @tab-click="handleClick">
     <el-tab-pane label="用户" name="user"></el-tab-pane>
     <el-tab-pane label="管理员" name="admin"></el-tab-pane>
   </el-tabs>
 
-  <el-card shadow="never">
+  <div class="card-box">
     <component :is="curComponent"></component>
-  </el-card>
+  </div>
 </template>
 
 <script setup>
@@ -27,7 +27,7 @@
 </script>
 
 <style lang="scss" scoped>
-  .el-tabs--border-card {
-    border-bottom: 0;
+  .card-box {
+    border-top: 0;
   }
 </style>
