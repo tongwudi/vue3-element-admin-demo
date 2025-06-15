@@ -1,4 +1,3 @@
-import { PatchFlags } from 'element-plus/es/utils/index.mjs';
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 const Layout = () => import('@/layout/index.vue');

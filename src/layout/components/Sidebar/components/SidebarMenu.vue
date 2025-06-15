@@ -50,6 +50,7 @@
   };
 
   const handleSelect = (index, indexPath) => {
+    console.log(index, 'index');
     isExternal(index) ? window.open(index, '_blank') : router.push(index);
   };
 </script>

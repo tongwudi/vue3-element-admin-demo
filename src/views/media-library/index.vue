@@ -2,103 +2,107 @@
   <div class="row-fixed">
     <div class="col-fixed">
       <div class="card-box">
-        <div>
-          <el-tree
-            ref="treeRef"
-            :data="dataSource"
-            node-key="id"
-            default-expand-all
-            :highlight-current="true"
-            :expand-on-click-node="false"
-            @node-click="nodeClick"
-          >
-            <template #default="{ node, data }">
-              <div class="custom-tree-node">
-                <span>{{ node.label }}</span>
-                <el-row style="gap: 15px">
-                  <el-link
-                    type="primary"
-                    underline="never"
-                    :icon="Plus"
-                    @click.stop="append(data)"
-                  />
-                  <el-link
-                    v-if="node.level !== 1"
-                    type="danger"
-                    underline="never"
-                    :icon="Delete"
-                    @click.stop="remove(node, data)"
-                  />
-                </el-row>
+        <el-tree
+          ref="treeRef"
+          :data="dataSource"
+          node-key="id"
+          default-expand-all
+          highlight-current
+          :expand-on-click-node="false"
+          @node-click="nodeClick"
+        >
+          <template #default="{ node, data }">
+            <div
+              class="custom-tree-node"
+              @mouseover="node.visibleButtons = true"
+              @mouseleave="node.visibleButtons = false"
+            >
+              <span>{{ node.label }}</span>
+              <div v-show="node.visibleButtons">
+                <el-button
+                  v-if="node.level !== 1"
+                  type="danger"
+                  link
+                  :icon="Remove"
+                  @click.stop="remove(node, data)"
+                ></el-button>
+                <el-button
+                  type="primary"
+                  link
+                  :icon="CirclePlus"
+                  @click.stop="append(data)"
+                ></el-button>
               </div>
-            </template>
-          </el-tree>
-        </div>
+            </div>
+          </template>
+        </el-tree>
       </div>
     </div>
 
     <div class="col-flex">
-      <el-tabs type="border-card" v-model="activeName">
+      <el-tabs
+        type="border-card"
+        v-if="showTabs"
+        v-model="currentTab"
+        @tab-click="handleTabClick"
+      >
         <el-tab-pane label="图片" name="image"></el-tab-pane>
         <el-tab-pane label="音视频" name="video"></el-tab-pane>
         <el-tab-pane label="文档" name="document"></el-tab-pane>
       </el-tabs>
 
-      <el-row class="operate" justify="space-between">
-        <div>
-          <el-button>全选</el-button>
-          <el-button :icon="RefreshRight">刷新</el-button>
-          <el-button>上传</el-button>
-          <el-button type="primary">批量上传</el-button>
-          <!-- <el-button :icon="Plus">创建目录</el-button> -->
-        </div>
-        <div>
-          <el-row justify="end" align="middle">
-            <el-input
-              style="width: 200px"
-              v-model="input"
-              placeholder="搜索"
-              :prefix-icon="Search"
-            />
-          </el-row>
-        </div>
-      </el-row>
-
-      <div class="card-box">
-        <el-row :gutter="20">
-          <el-col
-            :lg="4"
-            :md="8"
-            :sm="12"
-            v-for="item in 8"
-            style="margin-bottom: 15px"
-          >
-            <div class="cover">
-              <el-image
-                src="https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg"
-              />
-            </div>
-            <div class="title">售后服务</div>
-          </el-col>
-          <el-col :lg="4" :md="8" :sm="12">
-            <div class="cover">
-              <el-image :src="yNsxFC8rLHMZQcK" />
-            </div>
-            <div class="title">售后服务</div>
-          </el-col>
-        </el-row>
-      </div>
+      <component
+        :is="curComponent"
+        :node="curNode"
+        :show-upload="showUpload"
+        @change="handleChangeCom"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-  import { Plus, Delete, RefreshRight, Search } from '@element-plus/icons-vue';
-  import yNsxFC8rLHMZQcK from '@/assets/img/yNsxFC8rLHMZQcK.jpg';
+  import LibraryComp from './components/LibraryComp.vue';
+  import UploadComp from './components/UploadComp.vue';
+  import { Remove, CirclePlus } from '@element-plus/icons-vue';
 
-  const activeName = ref('image');
+  const props = defineProps({
+    showTabs: {
+      type: Boolean,
+      default: true
+    },
+    activeTag: {
+      type: String,
+      default: 'image'
+    },
+    showUpload: {
+      type: Boolean,
+      default: true
+    }
+  });
+
+  const components = {
+    library: LibraryComp,
+    upload: UploadComp
+  };
+  const curComponent = shallowRef(components.library);
+  const currentTab = ref('');
+
+  const handleTabClick = () => {
+    curComponent.value = components.library;
+  };
+  const handleChangeCom = obj => {
+    curComponent.value = components[obj.type];
+  };
+
+  watch(
+    () => props.activeTag,
+    val => (currentTab.value = val),
+    { immediate: true }
+  );
 
   const treeRef = ref(null);
+  const curNode = ref({});
   const dataSource = ref([
     {
       id: 0,
@@ -156,9 +160,22 @@
     }
   ]);
 
-  let id = 1000;
+  onMounted(() => {
+    getTreeData();
+  });
+
+  const getTreeData = () => {
+    // 默认选中"全部"节点
+    treeRef.value.setCurrentKey(0);
+    curNode.value = treeRef.value.getCurrentNode();
+  };
+  const nodeClick = (data, node) => {
+    curNode.value = data;
+  };
+
   const append = data => {
-    const newChild = { id: id++, label: 'testtest', children: [] };
+    const newId = Date.now(); // 使用时间戳作为新节点的ID
+    const newChild = { id: newId, label: `新节点 ${newId}`, children: [] };
     if (!data.children) {
       data.children = [];
     }
@@ -172,61 +189,15 @@
     children.splice(index, 1);
     dataSource.value = [...dataSource.value];
   };
-  const nodeClick = (data, node) => {
-    console.log('当前选中:', data, node);
-  };
-
-  const input = ref('');
-
-  const handleAdd = () => {
-    treeRef.value.setCurrentKey();
-  };
 </script>
 
 <style lang="scss" scoped>
-  .custom-tree-node {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 14px;
-    padding-right: 8px;
-  }
-
-  .operate {
-    padding: 10px 20px;
-    background-color: #f8f8f8;
-    border-left: 1px solid #e4e7ed;
-    border-right: 1px solid #e4e7ed;
-  }
-
   .card-box {
     height: 100%;
     overflow: auto;
   }
 
-  .cover {
-    padding: 5px;
-    border: 1px solid #eee;
-    .el-image {
-      width: 100%;
-      padding-top: 75%;
-      height: 0;
-      position: relative;
-      :deep(img) {
-        position: absolute;
-        inset: 0;
-        height: 100%;
-      }
-    }
-  }
-  .title {
-    font-size: 12px;
-    line-height: 1.5;
-    margin-top: 5px;
-    text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .el-tabs + :deep(.operate) {
+    border-top: none;
   }
 </style>

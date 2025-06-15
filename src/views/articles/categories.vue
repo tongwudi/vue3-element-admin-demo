@@ -24,7 +24,7 @@
             :data="dataSource"
             node-key="id"
             default-expand-all
-            :highlight-current="true"
+            highlight-current
             :expand-on-click-node="false"
             draggable
             @node-click="nodeClick"
@@ -32,20 +32,20 @@
             <template #default="{ node, data }">
               <div class="custom-tree-node">
                 <span>{{ node.label }}</span>
-                <el-row style="gap: 15px">
-                  <el-link
-                    type="primary"
-                    underline="never"
-                    :icon="Plus"
-                    @click.stop="append(data)"
-                  />
-                  <el-link
+                <div>
+                  <el-button
                     type="danger"
-                    underline="never"
-                    :icon="Delete"
+                    link
+                    :icon="Remove"
                     @click.stop="remove(node, data)"
-                  />
-                </el-row>
+                  ></el-button>
+                  <el-button
+                    type="primary"
+                    link
+                    :icon="CirclePlus"
+                    @click.stop="append(data)"
+                  ></el-button>
+                </div>
               </div>
             </template>
           </el-tree>
@@ -115,7 +115,13 @@
 </template>
 
 <script setup>
-  import { ArrowLeft, Plus, Delete, Close } from '@element-plus/icons-vue';
+  import {
+    ArrowLeft,
+    Plus,
+    Remove,
+    CirclePlus,
+    Close
+  } from '@element-plus/icons-vue';
 
   const router = useRouter();
 
@@ -232,15 +238,6 @@
 </script>
 
 <style lang="scss" scoped>
-  .custom-tree-node {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 14px;
-    padding-right: 8px;
-  }
-
   .el-card {
     height: 100%;
   }

@@ -19,24 +19,23 @@
             v-model="openPreview"
             label="开启右侧预览"
           />
-          <el-button type="primary" @click="handleSave">保存草稿</el-button>
-          <el-button @click="handleSubmit">发布</el-button>
+          <el-button @click="handleSave">保存草稿</el-button>
+          <el-button type="primary" @click="handleSubmit">发布</el-button>
         </el-row>
       </el-row>
     </template>
 
     <el-form
-      style="height: 100%"
       ref="formRef"
       label-width="100px"
-      label-position="left"
+      label-position="top"
       require-asterisk-position="right"
       :model="form"
       :rules="rules"
     >
       <div class="drawer-body">
         <div class="drawer-body_left">
-          <el-form-item label="封面">
+          <el-form-item>
             <div class="upload">
               <el-icon :size="24"><Plus /></el-icon>
               <span>选择封面</span>
@@ -82,14 +81,14 @@
               placeholder="选择时间"
             />
           </el-form-item>
-          <el-form-item label="收费" prop="aa">
+          <el-form-item label="收费">
             <el-switch v-model="form.aa" />
           </el-form-item>
-          <el-form-item label="需要口令" prop="aa">
-            <el-switch v-model="form.aa" />
+          <el-form-item label="需要口令">
+            <el-switch v-model="form.bb" />
           </el-form-item>
-          <el-form-item label="置顶" prop="aa">
-            <el-switch v-model="form.aa" />
+          <el-form-item label="置顶">
+            <el-switch v-model="form.cc" />
           </el-form-item>
           <el-form-item label="原文链接">
             <el-input v-model="form.describe" />
@@ -99,21 +98,18 @@
           </el-form-item>
         </div>
         <div class="drawer-body_center">
-          <el-form-item label-width="0">
-            <el-input v-model="form.title" placeholder="请输入标题" />
-          </el-form-item>
-          <el-divider />
-          <el-form-item label-width="0">
-            <el-input
-              v-model="form.desc"
-              placeholder="副标题、关键词或者简单描述，可不填"
-            />
-          </el-form-item>
-          <WangEditor
-            style="margin-top: 10px"
-            v-model="form.value"
-            height="400px"
-          />
+          <div class="wrapper">
+            <el-form-item label="标题" prop="title">
+              <el-input v-model="form.title" placeholder="请输入标题" />
+            </el-form-item>
+            <el-form-item label="副标题">
+              <el-input
+                v-model="form.desc"
+                placeholder="副标题、关键词或者简单描述，可不填"
+              />
+            </el-form-item>
+            <WangEditor v-model="form.value" height="400px" />
+          </div>
         </div>
         <div class="drawer-body_right" v-show="openPreview">
           <div class="preview-action">
@@ -156,12 +152,12 @@
 
   const formRef = ref(null);
   const form = ref({
-    name: '',
+    title: '',
     category: 4,
     describe: ''
   });
   const rules = reactive({
-    name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+    title: [{ required: true, message: '请输入名称', trigger: 'blur' }],
     category: [{ required: true, message: '请选择上级分类', trigger: 'change' }]
   });
   const dataSource = ref([
@@ -231,7 +227,13 @@
 
   const handleSave = () => {};
 
-  const handleSubmit = () => {};
+  const handleSubmit = async () => {
+    await formRef.value.validate(valid => {
+      if (valid) {
+        console.log('submit!');
+      }
+    });
+  };
 </script>
 
 <style lang="scss">
@@ -255,27 +257,19 @@
       }
     }
     .drawer-body {
-      height: 100%;
       display: flex;
       gap: 10px;
       &_left {
+        height: calc(100vh - 60px);
         padding: 20px;
+        overflow: auto;
         background-color: #f9f9f9;
       }
       &_center {
         flex: 1;
-        padding: 20px 0;
-        background-color: #fff;
-        .el-form-item {
-          margin-bottom: 0;
-        }
-        .el-input__wrapper {
-          box-shadow: none;
-        }
-        .el-divider {
-          width: calc(100% - 20px);
-          margin: 5px auto;
-          border-color: #eee;
+        .wrapper {
+          padding: 20px;
+          background-color: #fff;
         }
       }
       &_right {
@@ -290,13 +284,6 @@
       justify-content: space-between;
       align-items: center;
       background-color: #f9f9f9;
-    }
-    .common {
-      width: 414px;
-      padding: 10px;
-      background-color: #fff;
-      box-sizing: content-box;
-      overflow: auto;
     }
     .phone {
       padding: 10px;
@@ -320,6 +307,32 @@
         }
       }
     }
+    .common {
+      width: 414px;
+      padding: 10px;
+      background-color: #fff;
+      box-sizing: content-box;
+      overflow: auto;
+      .title {
+        font-size: 14px;
+        line-height: 24px;
+        margin: 12px 0;
+        &::after {
+          content: '';
+          display: block;
+          width: 60px;
+          height: 3px;
+          margin-top: 5px;
+          background-color: #19cda6;
+        }
+      }
+      .desc {
+        font-size: 14px;
+        margin-bottom: 12px;
+        font-weight: 700;
+        color: #19cda6;
+      }
+    }
     .common,
     .screen-wrapper {
       &::-webkit-scrollbar {
@@ -332,25 +345,6 @@
         -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
         background-color: rgba(0, 0, 0, 0.2);
       }
-    }
-    .title {
-      font-size: 14px;
-      line-height: 24px;
-      margin: 12px 0;
-      &::after {
-        content: '';
-        display: block;
-        width: 60px;
-        height: 3px;
-        margin-top: 5px;
-        background-color: #19cda6;
-      }
-    }
-    .desc {
-      font-size: 14px;
-      margin-bottom: 12px;
-      font-weight: 700;
-      color: #19cda6;
     }
   }
 </style>

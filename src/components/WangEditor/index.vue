@@ -1,6 +1,5 @@
 <template>
-  <!-- <div style="border: 1px solid var(--el-border-color)"> -->
-  <div>
+  <div style="border: 1px solid var(--el-border-color)">
     <!-- 工具栏 -->
     <Toolbar
       :editor="editorRef"
@@ -26,13 +25,13 @@
   defineProps({
     mode: {
       type: String,
-      // default：默认模式 - 集成了 wangEditor 所有功能
-      // simple：简洁模式 - 仅有部分常见功能，但更加简洁易用
+      // defaul: 默认模式 - 集成了 wangEditor 所有功能
+      // simpl: 简洁模式 - 仅有部分常见功能，但更加简洁易用
       default: 'default'
     },
     height: {
       type: String,
-      default: '500px'
+      default: '400px'
     }
   });
 
@@ -75,5 +74,11 @@
     const editor = editorRef.value;
     if (editor == null) return;
     editor.destroy();
+  });
+
+  defineExpose({
+    setHtml(html) {
+      editorRef.value?.setHtml(html);
+    }
   });
 </script>
