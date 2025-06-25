@@ -4,15 +4,16 @@ import request from '@/utils/request'
 export const fatchLogin = (data) => {
   return request({
     url: '/api/login/username',
-    method: "POST",
-    data: data,
+    method: "post",
+    data,
   })
 }
-// 登出
+
+// 登出（账号、手机号）
 export const fatchLogout = () => {
   return request({
     url: '/api/user/query/logout',
-    method: "GET",
+    method: "get",
   })
 }
 
@@ -24,39 +25,38 @@ export const getRoutes = () => {
   })
 }
 
-// // 管理后台汇总数据查询 - 新增用户分页查询
-// export const queryLatestFollowPage = (params) => {
-//   return request({
-//     url: '/api/resource/query/wowwechatmanagesummary/queryLatestFollowPage',
-//     method: "GET",
-//     params
-//   })
-// }
+// 获取视频点播文件上传的地址和凭证(签名)
+export const getFileVodSign = (params) => {
+  return request({
+    url: '/api/file/manage/file/vodSign',
+    method: 'GET',
+    params
+  })
+}
 
+// 查看文件预览
+export const previewFile = (params) => {
+  return request({
+    url: '/api/file/query/file/preview',
+    method: 'GET',
+    params
+  })
+}
 
-// // 管理后台汇总数据查询 - 最新数据查询
-// export const queryLatestData = () => {
-//   return request({
-//     url: '/api/resource/query/wowwechatmanagesummary/queryLatestData',
-//     method: "GET"
-//   })
-// }
+// 获取单个文件签名
+export const getFileSign = (params) => {
+  return request({
+    url: '/api/file/manage/file/sign',
+    method: 'GET',
+    params
+  })
+}
 
-// // 管理后台汇总数据查询 - 访问量top5
-// export const queryAccessRanking5 = (params) => {
-//   return request({
-//     url: '/api/resource/query/wowwechatmanagesummary/queryAccessRanking5',
-//     method: "GET",
-//     params
-//   })
-// }
-
-
-// // 文章 - 列表条件查询
-// export const queryArticlesList = (data) => {
-//   return request({
-//     url: '/api/resource/query/wowarticle/queryList',
-//     method: "POST",
-//     data
-//   })
-// }
+// 保存签名文件
+export const saveManageFile = (data) => {
+  return request({
+    url: '/api/file/manage/file/save',
+    method: 'POST',
+    data
+  })
+}

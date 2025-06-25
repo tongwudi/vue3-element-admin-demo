@@ -23,6 +23,6 @@
 
 <style lang="scss" scoped>
   .el-breadcrumb {
-    margin-bottom: 20px;
+    margin-top: 20px;
   }
 </style>
