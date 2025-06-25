@@ -12,9 +12,10 @@
 </script>
 
 <style lang="scss" scoped>
-  // .el-scrollbar {
-  //   height: calc(100vh - 60px);
-  // }
+  .el-scrollbar {
+    // height: calc(100vh - 60px);
+    height: 100vh;
+  }
   :deep(.el-menu) {
     border: none;
   }

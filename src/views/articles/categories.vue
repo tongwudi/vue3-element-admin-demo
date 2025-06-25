@@ -1,6 +1,6 @@
 <template>
-  <el-card body-style="height: calc(100% - 69px);">
-    <template #header>
+  <div class="categories">
+    <el-card shadow="never">
       <el-row justify="space-between">
         <!-- <el-button :icon="ArrowLeft">返回</el-button> -->
         <el-link :icon="ArrowLeft" underline="never" @click="router.back()">
@@ -10,19 +10,23 @@
           添加分类
         </el-button>
       </el-row>
-    </template>
+    </el-card>
 
-    <div class="row-fixed">
-      <div class="col-flex">
+    <el-row :gutter="20" style="flex: 1; overflow: hidden">
+      <el-col :span="12" style="height: 100%">
         <el-card
           shadow="hover"
+          style="height: 100%"
           body-style="height: calc(100% - 61px);overflow: auto;"
         >
-          <template #header>分类列表</template>
+          <template #header>
+            <span>分类列表</span>
+          </template>
           <el-tree
             ref="treeRef"
-            :data="dataSource"
+            :data="treeData"
             node-key="id"
+            :props="{ label: 'name' }"
             default-expand-all
             highlight-current
             :expand-on-click-node="false"
@@ -30,9 +34,13 @@
             @node-click="nodeClick"
           >
             <template #default="{ node, data }">
-              <div class="custom-tree-node">
+              <div
+                class="custom-tree-node"
+                @mouseover="node.visibleButtons = true"
+                @mouseleave="node.visibleButtons = false"
+              >
                 <span>{{ node.label }}</span>
-                <div>
+                <div v-show="node.visibleButtons">
                   <el-button
                     type="danger"
                     link
@@ -50,22 +58,20 @@
             </template>
           </el-tree>
         </el-card>
-      </div>
-      <div class="col-flex">
+      </el-col>
+      <el-col :span="12" style="height: 100%">
         <el-card
           shadow="never"
-          style="background-color: #f5f8fa"
+          style="height: 100%; background-color: #f5f8fa"
+          body-style="height: calc(100% - 61px);overflow: auto;"
           v-show="isDisplay"
         >
           <template #header>
             <el-row align="middle" justify="space-between">
               <span>设置分类</span>
-              <el-button
-                style="font-size: 20px"
-                :icon="Close"
-                link
-                @click="handleClose"
-              ></el-button>
+              <el-button link @click="close">
+                <el-icon size="20"><Close /></el-icon>
+              </el-button>
             </el-row>
           </template>
           <el-form
@@ -76,169 +82,136 @@
             :model="form"
             :rules="rules"
           >
-            <el-form-item label="图片">
-              <div class="upload">
-                <el-icon :size="24"><Plus /></el-icon>
-                <span>选择图片</span>
-              </div>
+            <el-form-item label="名称" prop="name">
+              <el-input v-model="form.name" placeholder="请输入名称" />
             </el-form-item>
-            <el-form-item label="名称" prop="label">
-              <el-input v-model="form.label" placeholder="请输入名称" />
-            </el-form-item>
-            <el-form-item label="上级分类" prop="id">
+            <el-form-item label="上级分类" prop="parentId">
               <el-tree-select
                 style="width: 100%"
-                v-model="form.id"
-                :data="dataSource"
+                v-model="form.parentId"
+                :data="treeSelectData"
+                :props="{ label: 'name' }"
                 node-key="id"
                 default-expand-all
+                check-strictly
               />
             </el-form-item>
             <el-form-item label="描述">
               <el-input
-                v-model="form.describe"
+                v-model="form.description"
                 type="textarea"
                 placeholder="请输入描述"
               />
             </el-form-item>
             <el-form-item>
               <el-button @click="resetForm">重置</el-button>
-              <el-button type="primary" @click="updateForm">
-                {{ form.id ? '更新' : '创建' }}
+              <el-button type="primary" @click="submitForm">
+                {{ form.id ? '更新' : '添加' }}
               </el-button>
             </el-form-item>
           </el-form>
         </el-card>
-      </div>
-    </div>
-  </el-card>
+      </el-col>
+    </el-row>
+  </div>
 </template>
 
 <script setup>
-  import {
-    ArrowLeft,
-    Plus,
-    Remove,
-    CirclePlus,
-    Close
-  } from '@element-plus/icons-vue';
+  import { ArrowLeft, Plus, Remove, CirclePlus } from '@element-plus/icons-vue';
+  import Articles from '@/api/articles';
 
   const router = useRouter();
 
   const treeRef = ref(null);
-  const dataSource = ref([
-    {
-      id: 1,
-      label: 'Level one 1',
-      children: [
-        {
-          id: 4,
-          label: 'Level two 1-1',
-          children: [
-            {
-              id: 9,
-              label: 'Level three 1-1-1'
-            },
-            {
-              id: 10,
-              label: 'Level three 1-1-2'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 2,
-      label: 'Level one 2',
-      children: [
-        {
-          id: 5,
-          label: 'Level two 2-1'
-        },
-        {
-          id: 6,
-          label: 'Level two 2-2'
-        }
-      ]
-    },
-    {
-      id: 3,
-      label: 'Level one 3',
-      children: [
-        {
-          id: 7,
-          label: 'Level two 3-1'
-        },
-        {
-          id: 8,
-          label: 'Level two 3-2'
-        }
-      ]
-    }
-  ]);
-
-  let id = 1000;
-  const append = data => {
-    const newChild = { id: id++, label: 'testtest', children: [] };
-    if (!data.children) {
-      data.children = [];
-    }
-    data.children.push(newChild);
-    dataSource.value = [...dataSource.value];
-  };
-  const remove = (node, data) => {
-    const parent = node.parent;
-    const children = parent.data.children || parent.data;
-    const index = children.findIndex(d => d.id === data.id);
-    children.splice(index, 1);
-    dataSource.value = [...dataSource.value];
-    handleClose();
-  };
-  const nodeClick = (data, node) => {
-    console.log('当前选中:', data);
-    const { children, ...obj } = data;
-    form.value = { ...obj };
-    isDisplay.value = true;
-  };
+  const treeData = ref([]);
+  const treeSelectData = ref([{ name: '全部', id: 'all', children: [] }]);
 
   const isDisplay = ref(false);
   const formRef = ref(null);
-  const form = ref({
-    id: '',
-    label: '',
-    category: 4,
-    describe: ''
-  });
+  const form = ref({});
   const rules = reactive({
     name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-    category: [{ required: true, message: '请选择上级分类', trigger: 'change' }]
+    parentId: [{ required: true, message: '请选择上级分类', trigger: 'change' }]
   });
+
+  const getTreeData = async () => {
+    const res = await Articles.queryTreeById({ id: '' });
+    treeData.value = res;
+    treeSelectData.value = [{ name: '全部', id: 'all', children: res }];
+  };
 
   const handleAdd = () => {
     resetForm();
+    form.value = { parentId: 'all' };
+    isDisplay.value = true;
     treeRef.value.setCurrentKey();
+  };
+
+  const nodeClick = data => {
+    resetForm();
+    const { children, ...obj } = data;
+    form.value = { ...obj, parentId: obj.parentId || 'all' };
     isDisplay.value = true;
   };
-  const handleClose = () => {
+
+  const append = data => {
+    resetForm();
+    form.value = { parentId: data.id };
+    isDisplay.value = true;
+    treeRef.value.setCurrentKey(data.id);
+  };
+
+  const remove = (node, data) => {
+    const hasChild = data.children?.length > 0;
+    ElMessageBox.confirm(
+      `确定删除 < ${node.label} > ${hasChild ? '及所有子' : ''}分类吗？`,
+      '警告',
+      { type: 'warning' }
+    )
+      .then(async () => {
+        await Articles.deleteTreeById({ id: data.id });
+        const parent = node.parent;
+        const children = parent.data.children || parent.data;
+        const index = children.findIndex(d => d.id === data.id);
+        children.splice(index, 1);
+        treeData.value = [...treeData.value];
+        ElMessage.success('删除成功');
+        close();
+      })
+      .catch(() => {});
+  };
+
+  const close = () => {
     resetForm();
     isDisplay.value = false;
   };
+
   const resetForm = () => {
     if (!formRef.value) return;
     formRef.value.resetFields();
   };
-  const updateForm = async () => {
+
+  const submitForm = () => {
     if (!formRef.value) return;
-    await formRef.value.validate(valid => {
-      if (valid) {
-        console.log('submit!');
-      }
+    formRef.value.validate(async valid => {
+      if (!valid) return;
+      const { id, parentId, ...other } = form.value;
+      const params = {
+        ...other,
+        id,
+        parentId: parentId == 'all' ? '' : parentId
+      };
+      const fetch = id ? Articles.updateTreeById : Articles.addTreeById;
+      await fetch(params);
+      ElMessage.success(id ? '更新成功' : '添加成功');
+      close();
+      getTreeData();
     });
   };
+
+  onMounted(() => {
+    getTreeData();
+  });
 </script>
 
-<style lang="scss" scoped>
-  .el-card {
-    height: 100%;
-  }
-</style>
+<style lang="scss" scoped></style>

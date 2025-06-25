@@ -1,10 +1,10 @@
 <template>
   <div class="dashboard">
-    <div class="update-time">更新时间: 2025-06-06 08:28:23</div>
+    <div class="update-time">更新时间: {{ dateTime }}</div>
 
     <el-row :gutter="15">
       <el-col :sm="24" :lg="12">
-        <div class="section">
+        <!-- <div class="section">
           <div class="section-header">
             <span>快捷方式</span>
           </div>
@@ -33,30 +33,30 @@
               </el-card>
             </div>
           </div>
-        </div>
+        </div> -->
 
-        <div class="section">
+        <div class="section" v-if="userList.length > 0">
           <div class="section-header">
             <div class="section-header_left">
               <span>新增用户</span>
+              <!-- <router-link class="more" to="member/index">更多>></router-link> -->
             </div>
             <el-button size="small" type="primary" link @click="goPage">
               设置权限
             </el-button>
           </div>
           <div class="section-body">
-            <!-- <div class="list" v-show="userList.length > 0"> -->
             <div class="list">
-              <div class="list-item" v-for="item in 10">
+              <div class="list-item" v-for="item in userList">
                 <div class="list-item_left">
                   <el-avatar
                     :size="24"
                     src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"
                   />
-                  <span class="name">物理</span>
+                  <span class="name">{{ item.nickName }}</span>
                 </div>
                 <div class="list-item_right">
-                  <span class="date">2025-06-03</span>
+                  <span class="date">{{ item.followTime }}</span>
                   <span class="follow">关注</span>
                 </div>
               </div>
@@ -64,7 +64,7 @@
           </div>
         </div>
 
-        <div class="section">
+        <!-- <div class="section">
           <div class="section-header">
             <span>文件下载量排行榜</span>
             <div class="section-header_right">
@@ -113,7 +113,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </div> -->
       </el-col>
 
       <el-col :sm="24" :lg="12">
@@ -156,7 +156,7 @@
           </div>
         </div>
 
-        <div class="section">
+        <!-- <div class="section">
           <div class="section-header">
             <span>访问量统计</span>
             <el-select style="width: 100px" v-model="visitDateRange">
@@ -173,9 +173,9 @@
               <ECharts :options="visitChartOptions" style="height: 260px" />
             </el-card>
           </div>
-        </div>
+        </div> -->
 
-        <div class="section">
+        <div class="section" v-if="visitRanksData.length > 0">
           <div class="section-header">
             <span>访问量排行榜</span>
             <div class="section-header_right">
@@ -216,9 +216,8 @@
             </div>
           </div>
           <div class="section-body">
-            <!-- <div class="list" v-show="visitRanksData.length > 0"> -->
             <div class="list">
-              <div class="list-item" v-for="item in 5">
+              <div class="list-item" v-for="item in visitRanksData">
                 <span class="title">请问，怎么购买你们的产品（零售的）</span>
                 <span class="num">204</span>
               </div>
@@ -233,13 +232,20 @@
 <script setup>
   import ECharts from '@/components/ECharts/index.vue';
   import { UserFilled } from '@element-plus/icons-vue';
-  // import {
-  //   queryLatestFollowPage,
-  //   queryLatestData,
-  //   queryAccessRanking5
-  // } from '@/api/index';
+  import Dashboard from '@/api/dashboard';
 
   const router = useRouter();
+
+  const dateTime = new Date()
+    .toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+    .replace(/\//g, '-');
 
   // 新增用户
   const userList = ref([]);
@@ -247,10 +253,10 @@
   const goPage = () => {
     router.push('/member/index');
   };
-  // const fetchAddUsersData = async () => {
-  //   const res = await queryLatestFollowPage();
-  //   userList.value = res.records || [];
-  // };
+  const getAddUsersData = async () => {
+    const res = await Dashboard.queryLatestFollowPage();
+    userList.value = res.records || [];
+  };
 
   // 文件下载量排行榜
   const downOptions = [
@@ -267,10 +273,10 @@
 
   // 最新数据
   const statsData = ref({
-    totalUserCount: 1922,
-    countTodayVisit: 120,
-    countTotalQuestion: 54,
-    countTotalArticle: 889
+    totalUserCount: 0,
+    countTodayVisit: 0,
+    countTotalQuestion: 0,
+    countTotalArticle: 0
   });
   const totalUserCount = useTransition(() => +statsData.value.totalUserCount);
   const countTodayVisit = useTransition(() => +statsData.value.countTodayVisit);
@@ -280,10 +286,10 @@
   const countTotalArticle = useTransition(
     () => +statsData.value.countTotalArticle
   );
-  // const fetchStatsData = async () => {
-  //   const res = await queryLatestData();
-  //   Object.assign(statsData.value, res);
-  // };
+  const getStatsData = async () => {
+    const res = await Dashboard.queryLatestData();
+    Object.assign(statsData.value, res);
+  };
 
   // 访问量排行榜
   const visitOptions = [
@@ -299,16 +305,16 @@
 
   const switchVisitRankings = val => {
     visitRanksParams.timeType = val;
-    // fetchVisitRanksData();
+    getVisitRanksData();
   };
   const switchVisitRankType = val => {
     visitRanksParams.contentType = val;
-    // fetchVisitRanksData();
+    getVisitRanksData();
   };
-  // const fetchVisitRanksData = async () => {
-  //   const res = await queryAccessRanking5(visitRanksParams);
-  //   visitRanksData.value = res.records || [];
-  // };
+  const getVisitRanksData = async () => {
+    const res = await Dashboard.queryAccessRanking5(visitRanksParams);
+    visitRanksData.value = res.records || [];
+  };
 
   // 访问量统计
   const visitDateOptions = [
@@ -319,7 +325,7 @@
   const visitDateRange = ref(7);
   const visitChartOptions = ref({});
 
-  const fetchVisitStatsData = async () => {
+  const getVisitStatsData = async () => {
     const data = {
       dates: [
         '2025-05-31',
@@ -378,15 +384,15 @@
   watch(
     () => visitDateRange.value,
     () => {
-      fetchVisitStatsData();
+      getVisitStatsData();
     }
   );
 
   onMounted(() => {
-    // fetchAddUsersData();
-    // fetchStatsData();
-    fetchVisitStatsData();
-    // fetchVisitRanksData();
+    getAddUsersData();
+    getStatsData();
+    getVisitStatsData();
+    getVisitRanksData();
   });
 </script>
 

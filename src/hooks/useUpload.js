@@ -1,87 +1,112 @@
-// 接口
+import { getFileSign, saveManageFile } from '@/api/index';
+import axios from 'axios';
 
+const PATH = 'MediaLibrary/Image'
 export function useUpload(option = {}) {
   const {
     accept = 'image/*',
-    data = {},
-    limit = 20,
     maxFileSize = 16,
-    multiple = false,
-    name = 'file',
-    onSuccess = () => { },
-    onError = () => { }
+    limit = 1,
+    onSuccess: customSuccess,
+    onError: customError
   } = option
 
   // 响应式数据
-  const fileList = ref(multiple ? [] : '')
   const loading = ref(false)
 
   function beforeUpload(file) {
-    // 校验文件类型：虽然 accept 属性限制了用户在文件选择器中可选的文件类型，但仍需在上传时再次校验文件实际类型，确保符合 accept 的规则
-    const acceptTypes = accept.split(',').map(type => type.trim());
+    // 校验文件类型
+    const acceptTypes = accept.split(',');
     const isValidType = acceptTypes.some(type => {
-      // 如果是 image/*，检查 MIME 类型是否以 "image/" 开头
-      if (type === 'image/*') {
+      const normalizedType = type.trim().toLowerCase()
+      if (normalizedType === 'image/*') {
         return file.type.startsWith('image/');
       }
       // 如果是扩展名 (.png, .jpg)，检查文件名是否以指定扩展名结尾
-      if (type.startsWith('.')) {
-        return file.name.toLowerCase().endsWith(type);
+      if (normalizedType.startsWith('.')) {
+        return file.name.toLowerCase().endsWith(normalizedType);
       }
       // 如果是具体的 MIME 类型 (image/png, image/jpeg)，检查是否完全匹配
-      return file.type === type;
+      return file.type === normalizedType;
     });
     if (!isValidType) {
-      ElMessage.warning(`上传文件的格式不正确，仅支持：${accept}`);
+      ElMessage.warning(`仅支持上传 ${accept} 格式的文件`);
       return false;
     }
-    // 限制文件大小
+    // 校验文件大小
     if (file.size > maxFileSize * 1024 * 1024) {
-      ElMessage.warning('上传图片不能大于' + maxFileSize + 'M');
+      ElMessage.warning('上传图片大小不能超过' + maxFileSize + 'M');
       return false;
     }
     return true;
   }
 
-  const httpRequest = options => {
-    return new Promise((resolve, reject) => {
-      const file = options.file;
-
-      const formData = new FormData();
-      formData.append(name, file);
-
-      // 处理附加参数
-      Object.keys(data).forEach(key => {
-        formData.append(key, props.data[key]);
-      });
-
-      loading.value = true
-      try {
-        // const res = await upload(formData)
-        fileList.value = multiple ? [...fileList.value, res.url] : response.url
-        // onSuccess(res)
-      } catch (error) {
-        onError(error)
-        ElMessage.error('上传失败: ' + error.message)
-      } finally {
-        loading.value = false
-      }
-    });
-  };
-
   const onExceed = () => {
     ElMessage.warning('最多只能上传' + limit + '张图片');
   }
 
+  const onSuccess = (res) => {
+    customSuccess(res)
+    // ElMessage.success('上传成功')
+  }
+
+  const onError = (err) => {
+    customError(err)
+    ElMessage.error('上传失败: ' + err.message)
+  }
+
+  const httpRequest = options => {
+    loading.value = true
+    return new Promise(async (resolve, reject) => {
+      const file = options.file;
+      try {
+        const signData = await uploadToOSS(PATH, file)
+        resolve({ ...signData, fileName: file.name, fileSize: file.size })
+      } catch (err) {
+        reject(err)
+      } finally {
+        loading.value = false
+      }
+    })
+  };
+
   return {
-    fileList,
     loading,
     uploadProps: {
       ...option,
       beforeUpload,
       httpRequest,
       onExceed,
-
+      onSuccess,
+      onError
     }
   }
+}
+
+export async function uploadToOSS(path, file) {
+  // 1.获取OSS上传凭证
+  const signData = await getFileSign({ path, fileName: file.name })
+  // 2.上传文件到OSS
+  const formData = new FormData()
+  formData.append('name', signData.newName)
+  formData.append('key', signData.dir + signData.newName)
+  formData.append('policy', signData.policy)
+  formData.append('OSSAccessKeyId', signData.accessid)
+  formData.append('success_action_status', '200')
+  formData.append('signature', signData.signature)
+  formData.append('file', file)
+  await axios.post(signData.host, formData)
+  // 3.记录文件信息到数据库
+  const params = {
+    id: signData.fileId,
+    filePath: signData.dir,
+    newName: signData.newName,
+    oldName: file.name,
+    fileSize: file.size,
+    format: '',
+    isSaveThumbnail: 'Y'
+  }
+  await saveManageFile(params);
+  // 返回数据
+  return signData
 }

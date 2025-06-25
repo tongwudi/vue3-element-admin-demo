@@ -23,11 +23,15 @@
           <el-select
             style="width: 120px"
             v-model="searchForm.status"
-            placeholder="状态"
+            placeholder="请选择状态"
             clearable
           >
-            <el-option label="草稿" value="DRAFT" />
-            <el-option label="已发布" value="PUBLISHED" />
+            <el-option
+              v-for="item in statusOptions"
+              :key="item.value"
+              :label="item.text"
+              :value="item.value"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -35,48 +39,47 @@
         </el-form-item>
       </el-form>
 
-      <div>
-        <el-button type="primary" plain @click="goPage">分类管理</el-button>
-        <el-button type="primary" @click="handleAdd">创建文章</el-button>
-      </div>
+      <el-button type="primary" plain @click="goPage">分类管理</el-button>
     </el-row>
   </el-card>
 
   <el-card shadow="never" style="margin-top: 20px">
     <el-table v-loading="loading" :data="tableData">
-      <el-table-column label="封面" width="200" align="center">
+      <el-table-column label="标题" prop="content" />
+      <el-table-column label="付费问题" width="120" align="center">
         <template #default="{ row }">
-          <el-row justify="center">
-            <el-image
-              style="width: 80px; height: 60px"
-              :src="row.coverImgUrl"
-              :previewSrcList="[row.coverImgUrl]"
-              preview-teleported
-            />
-          </el-row>
+          {{ row.charge == 'N' ? '否' : '是' }}
         </template>
       </el-table-column>
-      <el-table-column prop="title" label="标题" />
       <el-table-column
-        prop="updateTime"
-        label="更新时间"
-        width="180"
+        label="提问时间"
+        width="200"
+        prop="createTime"
         align="center"
       />
-      <el-table-column label="编辑" width="150" align="center">
+      <el-table-column label="状态" width="150" align="center">
         <template #default="{ row }">
+          <el-tag :type="renderStatus(row.replyStatus).type">
+            {{ renderStatus(row.replyStatus).text }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="250" align="center">
+        <template #default="{ row }">
+          <el-button size="small" type="primary" @click="handleEdit(row)">
+            编辑
+          </el-button>
           <el-button
             size="small"
-            :icon="Edit"
-            circle
-            @click="handleEdit(row)"
-          ></el-button>
-          <el-button
-            size="small"
-            :icon="Delete"
-            circle
-            @click="handleDelete(row)"
-          ></el-button>
+            :type="row.open == 'N' ? '' : 'warning'"
+            :loading="row.btnLoading"
+            @click="handleChange(row)"
+          >
+            {{ row.open == 'N' ? '隐藏' : '公开' }}
+          </el-button>
+          <el-button size="small" type="danger" @click="handleDelete(row)">
+            删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -89,21 +92,19 @@
       @pagination="getTableData"
     />
   </el-card>
-
-  <ArticlesDrawer v-model="showDrawer" :row="rowParams" @submit="handleQuery" />
 </template>
 
 <script setup>
   import Pagination from '@/components/Pagination/index.vue';
-  import ArticlesDrawer from './components/ArticlesDrawer.vue';
-  import { Edit, Delete } from '@element-plus/icons-vue';
-  import Articles from '@/api/articles';
+  import Questions from '@/api/questions';
+
+  defineOptions({
+    inheritAttrs: false
+  });
+
+  const emit = defineEmits(['change']);
 
   const router = useRouter();
-
-  const showDrawer = ref(false);
-  const rowParams = ref({});
-
 
   const loading = ref(true);
   const searchForm = reactive({});
@@ -115,12 +116,25 @@
   const tableData = ref([]);
   const total = ref(0);
 
+  const statusOptions = [
+    { text: '待回答', value: 'NOANSWER', type: 'danger' },
+    { text: '已回答', value: 'ANSWERED', type: 'success' }
+  ];
+
+  const renderStatus = status => {
+    const obj = statusOptions.reduce((obj, item) => {
+      obj[item.value] = item;
+      return obj;
+    }, {});
+    return obj[status] || statusOptions[0].value;
+  };
+
   const goPage = () => {
     router.push('/questions/categories');
   };
 
   const getTgasData = async () => {
-    const res = await Articles.queryTreeById({ id: '' });
+    const res = await Questions.queryTreeById({ id: '' });
     treeData.value = res;
   };
 
@@ -130,7 +144,7 @@
       ...searchForm,
       ...queryParams
     };
-    Articles.queryPage(params)
+    Questions.queryPage(params)
       .then(res => {
         tableData.value = res.records;
         total.value = res.total;
@@ -149,22 +163,31 @@
     handleQuery();
   };
 
-  const handleAdd = () => {
-    rowParams.value = {};
-    showDrawer.value = true;
+  const handleEdit = ({ id }) => {
+    emit('change', { type: 'detail', id });
   };
 
-  const handleEdit = row => {
-    rowParams.value = { ...row };
-    showDrawer.value = true;
+  const handleChange = row => {
+    row.btnLoading = true;
+    const params = {
+      id: row.id,
+      openStatus: row.open == 'N' ? 'Y' : 'N'
+    };
+    Questions.editOpen(params)
+      .then(res => {
+        row.open = params.openStatus;
+      })
+      .finally(() => {
+        row.btnLoading = false;
+      });
   };
 
   const handleDelete = ({ id }) => {
-    ElMessageBox.confirm(`确定删除此文章吗？`, '警告', {
+    ElMessageBox.confirm(`确定删除此问题吗？`, '警告', {
       type: 'warning'
     })
       .then(async () => {
-        await Articles.deleteById({ id });
+        await Questions.deleteById({ id });
         ElMessage.success('删除成功');
         handleQuery();
       })

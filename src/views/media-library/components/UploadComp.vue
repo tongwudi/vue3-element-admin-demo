@@ -8,13 +8,27 @@
       :model="form"
       :rules="rules"
     >
-      <el-form-item label="资源">
-        <UploadImage v-model="form.picUrl" />
+      <el-form-item label="资源" prop="fileUrl">
+        <UploadVod
+          v-if="curTab == 'AUDIO_VIDEO'"
+          v-model="form.fileUrl"
+          v-bind="uploadProps"
+          @onSuccess="getFileData"
+        />
+        <UploadImage
+          v-else
+          v-model="form.fileUrl"
+          v-bind="uploadProps"
+          @onSuccess="getFileData"
+        />
+      </el-form-item>
+      <el-form-item label="文件名" prop="name" v-if="form.fileUrl">
+        <el-input v-model="form.name" />
       </el-form-item>
       <el-form-item label="上传目录">
-        <el-tag>{{ node.label }}</el-tag>
+        <el-tag>{{ curNode.name }}</el-tag>
       </el-form-item>
-      <el-form-item label="标签管理">
+      <!-- <el-form-item label="标签管理">
         <div class="tags">
           <el-tag
             v-for="tag in dynamicTags"
@@ -37,64 +51,119 @@
             添加
           </el-button>
         </div>
-      </el-form-item>
+      </el-form-item> -->
     </el-form>
     <el-row justify="center">
-      <el-button @click="handleLibraryClick">取消</el-button>
-      <el-button type="primary">确定</el-button>
+      <el-button @click="handleCancel">取消</el-button>
+      <el-button type="primary" @click="handleSubmit">提交</el-button>
     </el-row>
   </div>
 </template>
 
 <script setup>
   import UploadImage from '@/components/Upload/index.vue';
-  import { Plus } from '@element-plus/icons-vue';
-
-  const props = defineProps({
-    node: {
-      type: Object,
-      default: () => ({})
-    }
-  });
+  import UploadVod from '@/components/Upload/UploadVod.vue';
+  // import { Plus } from '@element-plus/icons-vue';
+  import MediaLibrary from '@/api/media-library';
 
   const emit = defineEmits(['change']);
 
+  const curNode = inject('currentNode');
+  const curTab = inject('currentTab');
+
+  const formRef = ref();
   const form = ref({});
-  const rules = ref([]);
+  const rules = reactive({
+    fileUrl: [{ required: true, message: '请先上传文件', trigger: 'blur' }],
+    name: [{ required: true, message: '请输入名称', trigger: 'blur' }]
+  });
 
-  const inputRef = ref(null);
-  const inputVisible = ref(false);
-  const inputValue = ref('');
-  const dynamicTags = ref([]);
+  const uploadProps = computed(() => {
+    const obj = {
+      IMAGE: {
+        accept: 'image/*',
+        maxFileSize: 16,
+        drag: true
+      },
+      AUDIO_VIDEO: {
+        accept: 'video/*',
+        maxFileSize: 500
+      },
+      DOCUMENT: {
+        accept: '.pdf,.doc,.xls,.ppt,.doc,.xlsx,.pptx',
+        maxFileSize: 20,
+        drag: false
+      }
+    };
+    return obj[curTab.value];
+  });
 
-  const showInput = () => {
-    inputVisible.value = true;
-    nextTick(() => {
-      inputRef.value?.input?.focus();
-    });
-  };
-  const handleInputConfirm = () => {
-    if (inputValue.value) {
-      dynamicTags.value.push(inputValue.value);
-    }
-    inputVisible.value = false;
-    inputValue.value = '';
-  };
-  const handleClose = tag => {
-    dynamicTags.value.splice(dynamicTags.value.indexOf(tag), 1);
+  const getFileData = file => {
+    form.value.fileId = file.fileId;
+    form.value.name = file.fileName;
+    form.value.fileSize = file.fileSize;
   };
 
-  const handleLibraryClick = () => {
+  const getDetail = async id => {
+    const res = await MediaLibrary.queryDetailById({ id });
+    form.value = res;
+  };
+
+  const handleCancel = () => {
     emit('change', { type: 'library' });
   };
+
+  const handleSubmit = () => {
+    if (!formRef.value) return;
+    formRef.value.validate(async valid => {
+      if (!valid) return;
+      const params = {
+        ...form.value,
+        classificationId: curNode.value.id == 'all' ? '' : curNode.value.id,
+        mediaType: curTab.value
+      };
+      const fetch = form.value.id
+        ? MediaLibrary.updateFileById
+        : MediaLibrary.addFile;
+      await fetch(params);
+      ElMessage.success(form.value.id ? '更新成功' : '添加成功');
+      handleCancel();
+    });
+  };
+
+  // const inputRef = ref(null);
+  // const inputVisible = ref(false);
+  // const inputValue = ref('');
+  // const dynamicTags = ref([]);
+
+  // const showInput = () => {
+  //   inputVisible.value = true;
+  //   nextTick(() => {
+  //     inputRef.value?.input?.focus();
+  //   });
+  // };
+
+  // const handleInputConfirm = () => {
+  //   if (inputValue.value) {
+  //     dynamicTags.value.push(inputValue.value);
+  //   }
+  //   inputVisible.value = false;
+  //   inputValue.value = '';
+  // };
+
+  // const handleClose = tag => {
+  //   dynamicTags.value.splice(dynamicTags.value.indexOf(tag), 1);
+  // };
+
+  defineExpose({ getDetail });
 </script>
 
 <style lang="scss" scoped>
   .card-box {
     border-top: 0;
   }
-  .tags {
-    display: flex;
-    gap: 5px;
-  }
+  // .tags {
+  //   display: flex;
+  //   gap: 5px;
+  // }
 </style>

@@ -58,9 +58,6 @@
   const loading = ref(false);
 
   const login = async formEl => {
-    router.push('/');
-    return;
-
     if (!formEl) return;
     try {
       // 1. 表单验证

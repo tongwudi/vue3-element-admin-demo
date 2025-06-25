@@ -13,3 +13,9 @@
   margin-right: 10px !important;
   margin-bottom: 0 !important;
 }
+
+.el-input__wrapper:hover:has(input[readonly]),
+.el-input__wrapper.is-focus:has(input[readonly]) {
+  box-shadow: 0 0 0 1px var(--el-input-border-color, var(--el-border-color))
+    inset;
+}

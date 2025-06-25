@@ -1,6 +1,6 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router'
 
-const Layout = () => import('@/layout/index.vue');
+const Layout = () => import('@/layout/index.vue')
 
 export const constantRoutes = [
   {
@@ -11,93 +11,101 @@ export const constantRoutes = [
   {
     path: '/',
     component: Layout,
+    meta: { title: '控制台', icon: 'House' },
     redirect: '/dashboard',
     children: [
       {
         path: 'dashboard',
         component: () => import('@/views/dashboard/index.vue'),
-        meta: { title: '控制台', icon: '' }
+        meta: { title: '控制台' }
       },
       {
-        path: '404',
-        component: () => import('@/views/error/404.vue'),
-        meta: { hidden: true }
-      }
+        path: "404",
+        component: () => import("@/views/error/404.vue"),
+        meta: { hidden: true },
+      },
     ]
   },
   {
     path: '/member',
     component: Layout,
+    meta: { title: '人员管理', icon: 'User' },
     children: [
       {
         path: 'index',
         component: () => import('@/views/member/index.vue'),
-        meta: { title: '人员管理' }
-      }
-    ]
-  },
-  {
-    path: '/doc',
-    component: Layout,
-    children: [
-      {
-        path: 'https://juejin.cn/post/7228990409909108793',
-        meta: {
-          title: '平台文档(外链)'
-        }
+        meta: { title: '人员管理' },
       }
     ]
   },
   {
     path: '/media-library',
     component: Layout,
+    meta: { title: '媒体库', icon: 'Files' },
     children: [
       {
         path: 'index',
         component: () => import('@/views/media-library/index.vue'),
-        meta: { title: '媒体库' }
+        meta: { title: '媒体库' },
       }
     ]
   },
   {
     path: '/questions',
     component: Layout,
-    meta: { title: '问答管理' },
+    meta: { title: '问答管理', icon: 'ChatLineSquare' },
     children: [
       {
-        path: 'list',
-        component: () => import('@/views/questions/list.vue'),
-        meta: { title: '问答列表' }
+        path: 'index',
+        component: () => import('@/views/questions/index.vue'),
+        meta: { title: '问答列表' },
       },
       {
         path: 'categories',
         component: () => import('@/views/questions/categories.vue'),
-        meta: { title: '分类管理' }
+        meta: { title: '分类管理' },
       }
     ]
   },
   {
     path: '/articles',
     component: Layout,
-    meta: { title: '文章管理' },
+    meta: { title: '文章管理', icon: 'Tickets' },
     children: [
       {
         path: 'list',
         component: () => import('@/views/articles/list.vue'),
-        meta: { title: '文章列表' }
+        meta: { title: '文章列表' },
       },
       {
         path: 'categories',
         component: () => import('@/views/articles/categories.vue'),
-        meta: { title: '分类管理' }
+        meta: { title: '分类管理' },
+      }
+    ]
+  },
+  {
+    path: '/media',
+    component: Layout,
+    meta: { title: '课程管理', icon: 'Monitor' },
+    children: [
+      {
+        path: 'list',
+        component: () => import('@/views/media/list.vue'),
+        meta: { title: '课程列表' },
+      },
+      {
+        path: 'categories',
+        component: () => import('@/views/media/categories.vue'),
+        meta: { title: '分类管理' },
       }
     ]
   }
-];
+]
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: constantRoutes
-});
+})
 
-export default router;
+export default router

@@ -1,19 +1,19 @@
 <template>
-  <div style="border: 1px solid var(--el-border-color)">
+  <div
+    style="border: 1px solid var(--el-border-color); width: 100%; z-index: 99"
+  >
     <!-- 工具栏 -->
     <Toolbar
-      :editor="editorRef"
-      :mode="mode"
-      :default-config="toolbarConfig"
       style="border-bottom: 1px solid var(--el-border-color)"
+      :default-config="toolbarConfig"
+      :editor="editorRef"
     />
     <!-- 编辑器 -->
     <Editor
-      v-model="modelValue"
       :style="{ height: height, overflowY: 'hidden' }"
       :default-config="editorConfig"
-      :mode="mode"
-      @on-created="handleCreated"
+      v-model="modelValue"
+      @onCreated="handleCreated"
     />
   </div>
 </template>
@@ -23,22 +23,18 @@
   import { Toolbar, Editor } from '@wangeditor/editor-for-vue';
 
   defineProps({
-    mode: {
-      type: String,
-      // defaul: 默认模式 - 集成了 wangEditor 所有功能
-      // simpl: 简洁模式 - 仅有部分常见功能，但更加简洁易用
-      default: 'default'
-    },
     height: {
       type: String,
       default: '400px'
     }
   });
 
+  const emit = defineEmits(['customBrowseAndUpload']);
+
   // 双向绑定
   const modelValue = defineModel('modelValue', {
     type: String,
-    required: false
+    default: ''
   });
 
   // 编辑器实例，必须用 shallowRef，重要！
@@ -46,17 +42,20 @@
 
   // 工具栏配置
   const toolbarConfig = ref({
-    excludeKeys: ['fullScreen', 'todo', 'code', 'codeBlock', 'codeSelectLang'],
-    insertKeys: {
-      keys: []
-    }
+    excludeKeys: ['todo', 'code', 'codeBlock', 'codeSelectLang', 'group-video']
   });
 
   // 编辑器配置
   const editorConfig = ref({
     placeholder: '请输入内容...',
+    html: '',
     MENU_CONF: {
       uploadImage: {
+        // 自定义选择图片
+        customBrowseAndUpload(insertFn) {
+          emit('customBrowseAndUpload', insertFn);
+        },
+        // 自定义上传
         customUpload(file, insertFn) {}
       }
     }
@@ -77,8 +76,11 @@
   });
 
   defineExpose({
-    setHtml(html) {
-      editorRef.value?.setHtml(html);
+    clear() {
+      return editorRef.value.clear();
+    },
+    isEmpty() {
+      return editorRef.value.isEmpty();
     }
   });
 </script>

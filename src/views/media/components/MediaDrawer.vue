@@ -1,62 +1,159 @@
 <template>
   <el-drawer
     size="100%"
-    v-bind="$attrs"
+    v-model="visible"
     :show-close="false"
+    :close-on-press-escape="false"
     class="media-drawer"
     header-class="drawer-header"
   >
     <template #header>
-      <span class="drawer-header_title">课程编辑</span>
+      <span class="drawer-header_title">
+        课程{{ form.id ? '编辑' : '创建' }}
+      </span>
       <el-row style="width: 100%" justify="space-between" align="middle">
         <el-link :icon="ArrowLeft" underline="never" @click="handleClose">
           返回
         </el-link>
         <el-row>
-          <el-button link>预览效果</el-button>
-          <el-button @click="handleSave">保存草稿</el-button>
-          <el-button type="primary" @click="handleSubmit">发布</el-button>
+          <!-- <el-button link>预览效果</el-button> -->
+          <el-button v-if="form.id" @click="handleChangeStatus">
+            转为{{ form.status == 'PUBLISHED' ? '草稿' : '发布' }}
+          </el-button>
+          <el-button type="primary" @click="handleSubmit">
+            {{ form.id ? '更新' : '保存' }}
+          </el-button>
         </el-row>
       </el-row>
     </template>
 
     <el-form
       ref="formRef"
-      label-width="65px"
       label-position="top"
       require-asterisk-position="right"
       :model="form"
       :rules="rules"
+      @input.native="handleInputChange"
     >
       <div class="drawer-body">
         <div class="drawer-body_left">
           <div class="wrapper">
+            <el-form-item>
+              <div class="upload">
+                <div
+                  v-if="!form.coverImgUrl"
+                  class="upload-wrapper"
+                  @click="openLibraryDialog('IMAGE')"
+                >
+                  <el-icon :size="24"><Plus /></el-icon>
+                  <span>选择封面</span>
+                </div>
+                <template v-else>
+                  <el-image
+                    style="width: 100%; height: 100%"
+                    :src="form.coverImgUrl"
+                    @click="openLibraryDialog('IMAGE')"
+                  />
+                </template>
+              </div>
+            </el-form-item>
+            <el-form-item label="收费" prop="charge">
+              <el-switch
+                v-model="form.charge"
+                inactive-value="N"
+                active-value="Y"
+              />
+            </el-form-item>
+            <el-form-item label="分类" prop="classificationTypeId">
+              <el-tree-select
+                style="width: 100%"
+                v-model="form.classificationTypeId"
+                :data="treeData"
+                :props="{ label: 'name' }"
+                default-expand-all
+                node-key="id"
+              />
+            </el-form-item>
+            <el-form-item label="权重设置" prop="weight">
+              <el-select
+                style="width: 100%"
+                v-model="form.weight"
+                @change="changeWeight"
+              >
+                <el-option label="默认" value="DEFAULT" />
+                <el-option label="高" value="HEIGHT" />
+                <el-option label="中" value="MEDIUM" />
+                <el-option label="低" value="LOW" />
+                <el-option label="自定义" value="CUSTOM" />
+              </el-select>
+            </el-form-item>
+            <el-form-item
+              v-if="form.weight == 'CUSTOM'"
+              label="自定义权重"
+              prop="weightValue"
+            >
+              <el-input-number
+                style="width: 100%"
+                v-model="form.weightValue"
+                :precision="0"
+                :step="1"
+              />
+            </el-form-item>
+            <!-- <el-form-item label="发布时间" prop="time">
+              <el-date-picker
+                style="width: 100%"
+                v-model="form.time"
+                type="date"
+                placeholder="选择时间"
+              />
+            </el-form-item> -->
+          </div>
+        </div>
+        <div class="drawer-body_right">
+          <div class="wrapper">
             <el-form-item label="课程名" prop="title">
               <el-input v-model="form.title" placeholder="请输入课程名" />
             </el-form-item>
-            <el-form-item label="副标题">
+            <el-form-item label="副标题" prop="description">
               <el-input
-                v-model="form.desc"
+                v-model="form.description"
                 placeholder="副标题、关键词或者简单描述，可不填"
               />
             </el-form-item>
-            <WangEditor
-              ref="wangEditorRef"
-              height="400px"
-              v-model="form.content"
-            />
-            <el-form-item
-              style="margin-top: 18px"
-              label-position="top"
-              label="章节"
-            >
+            <el-form-item label="课程介绍" prop="content">
+              <WangEditor
+                height="400px"
+                v-model="form.content"
+                @customBrowseAndUpload="customBrowseAndUpload"
+              />
+            </el-form-item>
+            <el-form-item style="margin-bottom: 0">
+              <template #label>
+                <el-row justify="space-between">
+                  <span>章节</span>
+                  <div>
+                    <el-button type="primary" link @click="appendChapter()">
+                      添加章节
+                    </el-button>
+                    <el-button
+                      type="primary"
+                      link
+                      @click="showChapterDialog = true"
+                    >
+                      添加媒体
+                    </el-button>
+                  </div>
+                </el-row>
+              </template>
               <el-tree
                 style="width: 100%"
-                :data="dataSource"
+                ref="chapterTreeRef"
+                :data="chapterTreeData"
                 node-key="id"
+                :props="{ label: 'name' }"
                 highlight-current
+                default-expand-all
                 :expand-on-click-node="false"
-                draggable
               >
                 <template #default="{ node, data }">
                   <div
@@ -64,24 +161,41 @@
                     @mouseover="node.visibleButtons = true"
                     @mouseleave="node.visibleButtons = false"
                   >
-                    <el-input
-                      v-if="node.inputVisible"
-                      ref="inputRef"
-                      size="small"
-                      v-model="inputValue"
-                      @keyup.enter="handleInputConfirm(node, data)"
-                      @blur="handleInputConfirm(node, data)"
-                    />
-                    <span v-else @click="showInput(node)">
-                      {{ node.label }}
-                    </span>
+                    <div style="display: flex; align-items: center; gap: 5px">
+                      <template v-if="data.type == 'media'">
+                        <el-icon><VideoCamera /></el-icon>
+                      </template>
+                      <el-input
+                        v-if="node.inputVisible"
+                        ref="inputRef"
+                        size="small"
+                        v-model="inputValue"
+                        @keyup.enter="handleInputConfirm(node, data)"
+                        @blur="handleInputConfirm(node, data)"
+                      />
+                      <span v-else @click="showInput(node)">
+                        {{ node.label }}
+                      </span>
+                    </div>
+
                     <div v-show="node.visibleButtons">
-                      <el-button link :icon="EditPen"></el-button>
-                      <el-button type="danger" link :icon="Remove"></el-button>
                       <el-button
+                        v-if="data.type == 'media'"
+                        link
+                        :icon="EditPen"
+                      ></el-button>
+                      <el-button
+                        type="danger"
+                        link
+                        :icon="Remove"
+                        @click="removeChapter(node, data)"
+                      ></el-button>
+                      <el-button
+                        v-if="data.type != 'media'"
                         type="primary"
                         link
                         :icon="CirclePlus"
+                        @click="appendChapter(data)"
                       ></el-button>
                     </div>
                   </div>
@@ -90,127 +204,71 @@
             </el-form-item>
           </div>
         </div>
-        <div class="drawer-body_right">
-          <el-form-item>
-            <div class="upload">
-              <el-icon :size="24"><Plus /></el-icon>
-              <span>选择封面</span>
-            </div>
-          </el-form-item>
-          <el-form-item label="收费">
-            <el-switch v-model="form.aa" />
-          </el-form-item>
-          <el-form-item label="分类" prop="category">
-            <el-tree-select
-              style="width: 100%"
-              v-model="form.category"
-              :data="dataSource"
-              node-key="id"
-            />
-          </el-form-item>
-          <el-form-item label="权重设置" prop="category">
-            <el-select style="width: 100%" v-model="form.category">
-              <el-option label="默认" value="0" />
-              <el-option label="高" value="1" />
-              <el-option label="中" value="2" />
-              <el-option label="低" value="3" />
-              <el-option label="自定义" value="4" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="自定义权重" prop="num">
-            <el-input-number
-              style="width: 100%"
-              v-model="form.num"
-              :precision="0"
-              :step="1"
-            />
-          </el-form-item>
-          <el-form-item label="发布时间" prop="time">
-            <el-date-picker
-              style="width: 100%"
-              v-model="form.time"
-              type="date"
-              placeholder="选择时间"
-            />
-          </el-form-item>
-        </div>
       </div>
     </el-form>
   </el-drawer>
+
+  <MediaLibraryDialog
+    v-model="showDialog"
+    is-dialog
+    :active-tab="activeTab"
+    @confirm="handleChoose"
+  />
+
+  <ChapterDialog
+    v-model="showChapterDialog"
+    :option="chapterTreeData"
+    :source="chapterSource"
+    @open-library="openLibraryDialog"
+    @confirm="handleSaveChapter"
+  />
 </template>
 
 <script setup>
   import WangEditor from '@/components/WangEditor/index.vue';
+  import MediaLibraryDialog from '@/components/MediaLibraryDialog/index.vue';
+  import ChapterDialog from './ChapterDialog.vue';
   import {
     ArrowLeft,
-    Remove,
+    VideoCamera,
     EditPen,
-    CirclePlus,
-    Plus
+    Remove,
+    CirclePlus
   } from '@element-plus/icons-vue';
+  import Media from '@/api/media';
+  import { fetchTxtContent } from '@/utils/index';
+  import { getFileSign, saveManageFile } from '@/api/index';
+  import axios from 'axios';
 
-  const emit = defineEmits(['close']);
+  const props = defineProps({
+    row: {
+      type: Object,
+      default: () => ({})
+    }
+  });
+
+  const emit = defineEmits(['submit']);
+
+  const visible = defineModel('modelValue', {
+    type: Boolean,
+    default: false
+  });
+
+  const activeTab = ref('IMAGE');
 
   const formRef = ref(null);
-  const form = ref({
-    title: '',
-    category: 4
-  });
+  const form = ref({});
   const rules = reactive({
     title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-    category: [{ required: true, message: '请选择上级分类', trigger: 'change' }]
+    content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
   });
-  const wangEditorRef = ref(null);
-  const dataSource = ref([
-    {
-      id: 1,
-      label: 'Level one 1',
-      children: [
-        {
-          id: 4,
-          label: 'Level two 1-1',
-          children: [
-            {
-              id: 9,
-              label: 'Level three 1-1-1'
-            },
-            {
-              id: 10,
-              label: 'Level three 1-1-2'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 2,
-      label: 'Level one 2',
-      children: [
-        {
-          id: 5,
-          label: 'Level two 2-1'
-        },
-        {
-          id: 6,
-          label: 'Level two 2-2'
-        }
-      ]
-    },
-    {
-      id: 3,
-      label: 'Level one 3',
-      children: [
-        {
-          id: 7,
-          label: 'Level two 3-1'
-        },
-        {
-          id: 8,
-          label: 'Level two 3-2'
-        }
-      ]
-    }
-  ]);
+  const treeData = ref([]);
+  const showDialog = ref(false);
+
+  const chapterTreeRef = ref();
+  const chapterTreeData = ref([]);
+  const showChapterDialog = ref(false);
+  const chapterSource = ref('');
 
   const inputRef = ref(null);
   const inputValue = ref('');
@@ -225,25 +283,224 @@
 
   const handleInputConfirm = (node, data) => {
     if (inputValue.value) {
-      data.label = inputValue.value;
+      data.name = inputValue.value;
     }
     node.inputVisible = false;
     inputValue.value = '';
   };
 
-  const handleClose = () => {
-    emit('close');
+  const getDetail = async () => {
+    const res = await Media.queryDetailById({ id: props.row.id });
+    const content = await fetchTxtContent(res.contentJsonUrl);
+    form.value = { ...res, weightValue: +res.weightValue, content };
   };
 
-  const handleSave = () => {};
+  const getTreeData = async () => {
+    const res = await Media.queryTreeById({ id: '' });
+    treeData.value = res;
+  };
 
-  const handleSubmit = async () => {
-    await formRef.value.validate(valid => {
-      if (valid) {
-        console.log('submit!');
+  const getChapterTreeData = async () => {
+    const res = await Media.queryChapterTreeById({ id: '' });
+    chapterTreeData.value = res;
+  };
+
+  const getData = () => {
+    const queue = props.row.id ? [getDetail(), getChapterTreeData()] : [];
+    Promise.all([getTreeData(), ...queue]);
+  };
+
+  const changeWeight = () => {
+    form.value.weightValue = null;
+  };
+
+  let cachedInsertFn = null;
+  const customBrowseAndUpload = insertFn => {
+    cachedInsertFn = insertFn;
+    showDialog.value = true;
+  };
+
+  const handleChoose = url => {
+    if (cachedInsertFn) {
+      cachedInsertFn(url);
+      cachedInsertFn = null
+      return;
+    }
+    if (showChapterDialog.value) {
+      chapterSource.value = url;
+      return;
+    }
+    form.value.coverImgUrl = url;
+  };
+
+  const openLibraryDialog = tab => {
+    activeTab.value = tab;
+    showDialog.value = true;
+  };
+
+  const appendChapter = data => {
+    if (!data) {
+      const node = chapterTreeRef.value.getCurrentNode();
+      node ? append(node) : append();
+      return;
+    }
+    append(data);
+  };
+
+  const append = data => {
+    const timeStamp = Date.now();
+    const newChild = { id: timeStamp, name: `新建目录`, children: [] };
+    if (!data) {
+      chapterTreeData.value.push(newChild);
+      return;
+    }
+    if (!data.children) {
+      data.children = [];
+    }
+    const isMedia = data.children.some(v => v.type === 'media');
+    if (isMedia) {
+      ElMessage.warning('该章节子项不全是目录，不能添加子目录');
+      return;
+    }
+    data.children.push(newChild);
+    chapterTreeData.value = [...chapterTreeData.value];
+  };
+
+  const removeChapter = (node, data) => {
+    const hasChild = data.children?.length > 0;
+    ElMessageBox.confirm(
+      `确定删除 < ${node.label} > ${hasChild ? '及所有子' : ''}分类吗？`,
+      '警告',
+      { type: 'warning' }
+    )
+      .then(async () => {
+        await Media.deleteChapterTreeById({ id: data.id });
+        const parent = node.parent;
+        const children = parent.data.children || parent.data;
+        const index = children.findIndex(d => d.id === data.id);
+        children.splice(index, 1);
+        chapterTreeData.value = [...chapterTreeData.value];
+        ElMessage.success('删除成功');
+      })
+      .catch(() => {});
+  };
+
+  const handleSaveChapter = async () => {
+    const params = {};
+    await Media.addChapterTreeById(params);
+  };
+
+  const resetForm = () => {
+    if (!formRef.value) return;
+    formRef.value.resetFields();
+  };
+
+  let isDirty = false;
+  const handleInputChange = () => {
+    isDirty = true;
+  };
+
+  const reset = () => {
+    resetForm();
+    visible.value = false;
+    isDirty = false;
+  };
+
+  const handleClose = () => {
+    if (!isDirty) {
+      reset();
+      return;
+    }
+    ElMessageBox.confirm(`系统可能不会保存您所做的更改`, '离开此页面？', {
+      type: 'warning'
+    })
+      .then(() => {
+        reset();
+      })
+      .catch(err => () => {});
+  };
+
+  const handleChangeStatus = async () => {
+    const { id, status } = form.value;
+    const params = {
+      id,
+      status: status == 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
+    };
+    await Media.editStatus(params);
+    form.value.status = params.status;
+    ElMessage.success('状态修改成功');
+  };
+
+  const uploadToOSS = async (signData, file) => {
+    const formData = new FormData();
+    formData.append('name', signData.newName);
+    formData.append('key', signData.dir + signData.newName);
+    formData.append('policy', signData.policy);
+    formData.append('OSSAccessKeyId', signData.accessid);
+    formData.append('success_action_status', '200');
+    formData.append('signature', signData.signature);
+    formData.append('file', file);
+
+    await axios.post('https://llwskt.oss-cn-shanghai.aliyuncs.com/', formData);
+  };
+
+  const uplpadBlobToOSS = content => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const blob = new Blob([content], {
+          type: 'text/html; charset=utf-8'
+        });
+        const fileName = `media-${Date.now()}.txt`; // 生成文件名
+        const path = 'Media/File';
+        // 1.获取OSS上传凭证
+        const signData = await getFileSign({ path, fileName });
+        // 2.上传文件到OSS
+        await uploadToOSS(signData, blob);
+        // 3.记录文件信息到数据库
+        const params = {
+          id: signData.fileId,
+          filePath: signData.dir,
+          oldName: fileName,
+          newName: signData.newName,
+          fileSize: blob.size,
+          format: '',
+          isSaveThumbnail: 'Y'
+        };
+        await saveManageFile(params);
+        resolve({ ...signData, fileName });
+      } catch (err) {
+        reject(err);
       }
     });
   };
+
+  const handleSubmit = () => {
+    if (!formRef.value) return;
+    formRef.value.validate(async valid => {
+      if (!valid) return;
+      const { id, content, ...obj } = form.value;
+      const res = await uplpadBlobToOSS(content);
+      const params = {
+        ...obj,
+        id,
+        contentJsonId: res.fileId,
+        contentJsonUrl: res.fileUrl
+      };
+      const fetch = id ? Media.updateById : Media.add;
+      await fetch(params);
+      ElMessage.success(id ? '更新成功' : '创建成功');
+      reset();
+      emit('submit');
+    });
+  };
+
+  watch(visible, val => {
+    if (!val) {
+      form.value = {};
+      return;
+    }
+    getData();
+  });
 </script>
 
 <style lang="scss">
@@ -257,7 +514,7 @@
       padding: 0 20px;
       margin-bottom: 0;
       background-color: #fff;
-      box-shadow: 0 1px 2px 2px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 1px 2px 2px rgba(0, 0, 0, 0.05);
       z-index: 9;
       position: relative;
       &_title {
@@ -270,17 +527,26 @@
       display: flex;
       gap: 10px;
       &_left {
+        width: 360px;
+        height: calc(100vh - 60px);
+        position: fixed;
+        left: 0;
+        top: 60px;
+        background-color: #f9f9f9;
+        overflow: auto;
+        .wrapper {
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+        }
+      }
+      &_right {
         flex: 1;
+        margin-left: 380px;
         .wrapper {
           padding: 20px;
           background-color: #fff;
         }
-      }
-      &_right {
-        height: calc(100vh - 60px);
-        padding: 20px;
-        overflow: auto;
-        background-color: #f9f9f9;
       }
     }
   }

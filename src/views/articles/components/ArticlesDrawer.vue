@@ -1,13 +1,16 @@
 <template>
   <el-drawer
     size="100%"
-    v-bind="$attrs"
+    v-model="visible"
     :show-close="false"
+    :close-on-press-escape="false"
     class="articles-drawer"
     header-class="drawer-header"
   >
     <template #header>
-      <span class="drawer-header_title">文章编辑</span>
+      <span class="drawer-header_title">
+        文章{{ form.id ? '编辑' : '创建' }}
+      </span>
       <el-row style="width: 100%" justify="space-between" align="middle">
         <el-link :icon="ArrowLeft" underline="never" @click="handleClose">
           返回
@@ -19,100 +22,143 @@
             v-model="openPreview"
             label="开启右侧预览"
           />
-          <el-button @click="handleSave">保存草稿</el-button>
-          <el-button type="primary" @click="handleSubmit">发布</el-button>
+          <el-button v-if="form.id" @click="handleChangeStatus">
+            转为{{ form.status == 'PUBLISHED' ? '草稿' : '发布' }}
+          </el-button>
+          <el-button type="primary" @click="handleSubmit">
+            {{ form.id ? '更新' : '保存' }}
+          </el-button>
         </el-row>
       </el-row>
     </template>
 
     <el-form
       ref="formRef"
-      label-width="100px"
       label-position="top"
       require-asterisk-position="right"
       :model="form"
       :rules="rules"
+      @input.native="handleInputChange"
     >
       <div class="drawer-body">
         <div class="drawer-body_left">
-          <el-form-item>
-            <div class="upload">
-              <el-icon :size="24"><Plus /></el-icon>
-              <span>选择封面</span>
-            </div>
-          </el-form-item>
-          <el-form-item label="摘要" prop="name">
-            <el-input
-              v-model="form.name"
-              type="textarea"
-              placeholder="请输入摘要"
-            />
-          </el-form-item>
-          <el-form-item label="分类" prop="category">
-            <el-tree-select
-              style="width: 100%"
-              v-model="form.category"
-              :data="dataSource"
-              node-key="id"
-            />
-          </el-form-item>
-          <el-form-item label="权重设置" prop="category">
-            <el-select style="width: 100%" v-model="form.category">
-              <el-option label="默认" value="0" />
-              <el-option label="高" value="1" />
-              <el-option label="中" value="2" />
-              <el-option label="低" value="3" />
-              <el-option label="自定义" value="4" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="自定义权重" prop="num">
-            <el-input-number
-              style="width: 100%"
-              v-model="form.num"
-              :precision="0"
-              :step="1"
-            />
-          </el-form-item>
-          <el-form-item label="发布时间" prop="time">
-            <el-date-picker
-              style="width: 100%"
-              v-model="form.time"
-              type="date"
-              placeholder="选择时间"
-            />
-          </el-form-item>
-          <el-form-item label="收费">
-            <el-switch v-model="form.aa" />
-          </el-form-item>
-          <el-form-item label="需要口令">
-            <el-switch v-model="form.bb" />
-          </el-form-item>
-          <el-form-item label="置顶">
-            <el-switch v-model="form.cc" />
-          </el-form-item>
-          <el-form-item label="原文链接">
-            <el-input v-model="form.describe" />
-          </el-form-item>
-          <el-form-item label="别名">
-            <el-input v-model="form.describe" />
-          </el-form-item>
+          <div class="wrapper">
+            <el-form-item>
+              <div class="upload">
+                <div
+                  v-if="!form.coverImgUrl"
+                  class="upload-wrapper"
+                  @click="showDialog = true"
+                >
+                  <el-icon :size="24"><Plus /></el-icon>
+                  <span>选择封面</span>
+                </div>
+                <template v-else>
+                  <el-image
+                    style="width: 100%; height: 100%"
+                    :src="form.coverImgUrl"
+                    @click="showDialog = true"
+                  />
+                </template>
+              </div>
+            </el-form-item>
+            <el-form-item label="摘要" prop="summary">
+              <el-input
+                v-model="form.summary"
+                type="textarea"
+                placeholder="请输入摘要"
+              />
+            </el-form-item>
+            <el-form-item label="分类" prop="classificationTypeId">
+              <el-tree-select
+                style="width: 100%"
+                v-model="form.classificationTypeId"
+                :data="treeData"
+                :props="{ label: 'name' }"
+                default-expand-all
+                node-key="id"
+              />
+            </el-form-item>
+            <el-form-item label="权重设置" prop="weight">
+              <el-select
+                style="width: 100%"
+                v-model="form.weight"
+                @change="changeWeight"
+              >
+                <el-option label="默认" value="DEFAULT" />
+                <el-option label="高" value="HEIGHT" />
+                <el-option label="中" value="MEDIUM" />
+                <el-option label="低" value="LOW" />
+                <el-option label="自定义" value="CUSTOM" />
+              </el-select>
+            </el-form-item>
+            <el-form-item
+              v-if="form.weight == 'CUSTOM'"
+              label="自定义权重"
+              prop="weightValue"
+            >
+              <el-input-number
+                style="width: 100%"
+                v-model="form.weightValue"
+                :precision="0"
+                :step="1"
+              />
+            </el-form-item>
+            <!-- <el-form-item label="发布时间" prop="time">
+              <el-date-picker
+                style="width: 100%"
+                v-model="form.time"
+                type="date"
+                placeholder="选择时间"
+              />
+            </el-form-item> -->
+            <el-form-item label="收费" prop="charge">
+              <el-switch
+                v-model="form.charge"
+                inactive-value="N"
+                active-value="Y"
+              />
+            </el-form-item>
+            <el-form-item label="需要口令" prop="password">
+              <el-switch
+                v-model="form.password"
+                inactive-value="N"
+                active-value="Y"
+              />
+            </el-form-item>
+            <el-form-item label="置顶" prop="top">
+              <el-switch
+                v-model="form.top"
+                inactive-value="N"
+                active-value="Y"
+              />
+            </el-form-item>
+            <!-- <el-form-item label="原文链接">
+              <el-input v-model="form.describe" />
+            </el-form-item>
+            <el-form-item label="别名">
+              <el-input v-model="form.describe" />
+            </el-form-item> -->
+          </div>
         </div>
         <div class="drawer-body_center">
           <div class="wrapper">
             <el-form-item label="标题" prop="title">
               <el-input v-model="form.title" placeholder="请输入标题" />
             </el-form-item>
-            <el-form-item label="副标题">
+            <el-form-item label="副标题" prop="description">
               <el-input
-                v-model="form.desc"
+                v-model="form.description"
                 placeholder="副标题、关键词或者简单描述，可不填"
               />
             </el-form-item>
-            <WangEditor v-model="form.value" height="400px" />
+            <el-form-item prop="content">
+              <WangEditor v-model="form.content" height="400px" />
+            </el-form-item>
           </div>
         </div>
         <div class="drawer-body_right" v-show="openPreview">
-          <div class="preview-action">
+          <!-- <div class="preview-action">
             <span>手机端样式预览</span>
             <el-switch size="large" v-model="isPhoneStyle">
               <template #active-action>
@@ -122,97 +168,71 @@
                 <span>否</span>
               </template>
             </el-switch>
-          </div>
-          <div class="phone" v-show="isPhoneStyle">
+          </div> -->
+          <!-- <div class="phone" v-show="isPhoneStyle"> -->
+          <div class="phone">
             <img class="shell" src="@/assets//icons/mobile.svg" />
             <div class="screen">
               <div class="screen-wrapper">
                 <h3 class="title" v-show="form.title">{{ form.title }}</h3>
-                <div class="desc" v-show="form.desc">{{ form.desc }}</div>
-                <div class="content" v-html="form.value"></div>
+                <div class="desc" v-show="form.description">
+                  {{ form.description }}
+                </div>
+                <div v-html="form.content"></div>
               </div>
             </div>
           </div>
-          <div class="common" v-show="!isPhoneStyle">
+          <!-- <div class="common" v-show="!isPhoneStyle">
             <h3 class="title" v-show="form.title">{{ form.title }}</h3>
-            <div class="desc" v-show="form.desc">{{ form.desc }}</div>
+            <div class="desc" v-show="form.description">
+              {{ form.description }}
+            </div>
             <div class="content" v-html="form.value"></div>
-          </div>
+          </div> -->
         </div>
       </div>
     </el-form>
   </el-drawer>
+
+  <MediaLibraryDialog v-model="showDialog" is-dialog @confim="handleChoose" />
 </template>
 
 <script setup>
   import WangEditor from '@/components/WangEditor/index.vue';
+  import MediaLibraryDialog from '@/components/MediaLibraryDialog/index.vue';
   import { ArrowLeft } from '@element-plus/icons-vue';
+  import Articles from '@/api/articles';
+  import { fetchTxtContent } from '@/utils/index';
+  import { getFileSign, saveManageFile } from '@/api/index';
+  import axios from 'axios';
 
-  const emit = defineEmits(['close']);
+  const props = defineProps({
+    row: {
+      type: Object,
+      default: () => ({})
+    }
+  });
+
+  const emit = defineEmits(['submit']);
+
+  const visible = defineModel('modelValue', {
+    type: Boolean,
+    default: false
+  });
 
   const formRef = ref(null);
-  const form = ref({
-    title: '',
-    category: 4,
-    describe: ''
-  });
+  const form = ref({});
   const rules = reactive({
     title: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-    category: [{ required: true, message: '请选择上级分类', trigger: 'change' }]
+    content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
   });
-  const dataSource = ref([
-    {
-      id: 1,
-      label: 'Level one 1',
-      children: [
-        {
-          id: 4,
-          label: 'Level two 1-1',
-          children: [
-            {
-              id: 9,
-              label: 'Level three 1-1-1'
-            },
-            {
-              id: 10,
-              label: 'Level three 1-1-2'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 2,
-      label: 'Level one 2',
-      children: [
-        {
-          id: 5,
-          label: 'Level two 2-1'
-        },
-        {
-          id: 6,
-          label: 'Level two 2-2'
-        }
-      ]
-    },
-    {
-      id: 3,
-      label: 'Level one 3',
-      children: [
-        {
-          id: 7,
-          label: 'Level two 3-1'
-        },
-        {
-          id: 8,
-          label: 'Level two 3-2'
-        }
-      ]
-    }
-  ]);
+  const treeData = ref([]);
+  const showDialog = ref(false);
+
   const showPreviewBtn = ref(false);
   const openPreview = ref(false);
-  const isPhoneStyle = ref(true);
+
+  // const isPhoneStyle = ref(true);
   const width = useWindowSize().width;
   const WIDTH_DESKTOP = 1440;
   watchEffect(() => {
@@ -221,19 +241,141 @@
     !showPreviewBtn.value && (openPreview.value = false);
   });
 
-  const handleClose = () => {
-    emit('close');
+  const getDetail = async () => {
+    const res = await Articles.queryDetailById({ id: props.row.id });
+    const content = await fetchTxtContent(res.contentJsonUrl);
+    form.value = { ...res, weightValue: +res.weightValue, content };
   };
 
-  const handleSave = () => {};
+  const getTreeData = async () => {
+    const res = await Articles.queryTreeById({ id: '' });
+    treeData.value = res;
+  };
 
-  const handleSubmit = async () => {
-    await formRef.value.validate(valid => {
-      if (valid) {
-        console.log('submit!');
+  const getData = () => {
+    const queue = props.row.id ? [getDetail()] : [];
+    Promise.all([getTreeData(), ...queue]);
+  };
+
+  const changeWeight = val => {
+    form.value.weightValue = null;
+  };
+
+  const handleChoose = url => {
+    form.value.coverImgUrl = url;
+  };
+
+  const resetForm = () => {
+    if (!formRef.value) return;
+    formRef.value.resetFields();
+  };
+
+  let isDirty = false;
+  const handleInputChange = () => {
+    isDirty = true;
+  };
+
+  const reset = () => {
+    resetForm();
+    visible.value = false;
+    isDirty = false;
+  };
+
+  const handleClose = () => {
+    if (!isDirty) {
+      reset();
+      return;
+    }
+    ElMessageBox.confirm(`系统可能不会保存您所做的更改`, '离开此页面？', {
+      type: 'warning'
+    })
+      .then(() => {
+        reset();
+      })
+      .catch(err => () => {});
+  };
+
+  const handleChangeStatus = async () => {
+    const { id, status } = form.value;
+    const params = {
+      id,
+      status: status == 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
+    };
+    await Articles.editStatus(params);
+    form.value.status = params.status;
+    ElMessage.success('状态修改成功');
+  };
+
+  const uploadToOSS = async (signData, file) => {
+    const formData = new FormData();
+    formData.append('name', signData.newName);
+    formData.append('key', signData.dir + signData.newName);
+    formData.append('policy', signData.policy);
+    formData.append('OSSAccessKeyId', signData.accessid);
+    formData.append('success_action_status', '200');
+    formData.append('signature', signData.signature);
+    formData.append('file', file);
+
+    await axios.post('https://llwskt.oss-cn-shanghai.aliyuncs.com/', formData);
+  };
+
+  const uplpadBlobToOSS = content => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const blob = new Blob([content], {
+          type: 'text/html; charset=utf-8'
+        });
+        const fileName = `articles-${Date.now()}.txt`; // 生成文件名
+        const path = 'Articles/File';
+        // 1.获取OSS上传凭证
+        const signData = await getFileSign({ path, fileName });
+        // 2.上传文件到OSS
+        await uploadToOSS(signData, blob);
+        // 3.记录文件信息到数据库
+        const params = {
+          id: signData.fileId,
+          filePath: signData.dir,
+          oldName: fileName,
+          newName: signData.newName,
+          fileSize: blob.size,
+          format: '',
+          isSaveThumbnail: 'Y'
+        };
+        await saveManageFile(params);
+        resolve({ ...signData, fileName });
+      } catch (err) {
+        reject(err);
       }
     });
   };
+
+  const handleSubmit = () => {
+    if (!formRef.value) return;
+    formRef.value.validate(async valid => {
+      if (!valid) return;
+      const { id, content, ...obj } = form.value;
+      const res = await uplpadBlobToOSS(content);
+      const params = {
+        ...obj,
+        id,
+        contentJsonId: res.fileId,
+        contentJsonUrl: res.fileUrl
+      };
+      const fetch = id ? Articles.updateById : Articles.add;
+      await fetch(params);
+      ElMessage.success(id ? '更新成功' : '创建成功');
+      reset();
+      emit('submit');
+    });
+  };
+
+  watch(visible, val => {
+    if (!val) {
+      form.value = {};
+      return;
+    }
+    getData();
+  });
 </script>
 
 <style lang="scss">
@@ -247,7 +389,7 @@
       padding: 0 20px;
       margin-bottom: 0;
       background-color: #fff;
-      box-shadow: 0 1px 2px 2px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 1px 2px 2px rgba(0, 0, 0, 0.05);
       z-index: 9;
       position: relative;
       &_title {
@@ -260,13 +402,22 @@
       display: flex;
       gap: 10px;
       &_left {
+        width: 300px;
         height: calc(100vh - 60px);
-        padding: 20px;
-        overflow: auto;
+        position: fixed;
+        left: 0;
+        top: 60px;
         background-color: #f9f9f9;
+        overflow: auto;
+        .wrapper {
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+        }
       }
       &_center {
         flex: 1;
+        margin-left: 320px;
         .wrapper {
           padding: 20px;
           background-color: #fff;
@@ -275,16 +426,35 @@
       &_right {
         display: flex;
         flex-direction: column;
+        .title {
+          font-size: 14px;
+          line-height: 24px;
+          margin: 12px 0;
+          &::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 3px;
+            margin-top: 5px;
+            background-color: #19cda6;
+          }
+        }
+        .desc {
+          font-size: 14px;
+          margin-bottom: 12px;
+          font-weight: 700;
+          color: #19cda6;
+        }
       }
     }
-    .preview-action {
-      width: 100%;
-      display: flex;
-      padding: 10px 30px;
-      justify-content: space-between;
-      align-items: center;
-      background-color: #f9f9f9;
-    }
+    // .preview-action {
+    //   width: 100%;
+    //   display: flex;
+    //   padding: 10px 30px;
+    //   justify-content: space-between;
+    //   align-items: center;
+    //   background-color: #f9f9f9;
+    // }
     .phone {
       padding: 10px;
       position: relative;
@@ -307,33 +477,14 @@
         }
       }
     }
-    .common {
-      width: 414px;
-      padding: 10px;
-      background-color: #fff;
-      box-sizing: content-box;
-      overflow: auto;
-      .title {
-        font-size: 14px;
-        line-height: 24px;
-        margin: 12px 0;
-        &::after {
-          content: '';
-          display: block;
-          width: 60px;
-          height: 3px;
-          margin-top: 5px;
-          background-color: #19cda6;
-        }
-      }
-      .desc {
-        font-size: 14px;
-        margin-bottom: 12px;
-        font-weight: 700;
-        color: #19cda6;
-      }
-    }
-    .common,
+    // .common {
+    //   width: 414px;
+    //   padding: 10px;
+    //   background-color: #fff;
+    //   box-sizing: content-box;
+    //   overflow: auto;
+    // }
+    // .common,
     .screen-wrapper {
       &::-webkit-scrollbar {
         width: 6px;
