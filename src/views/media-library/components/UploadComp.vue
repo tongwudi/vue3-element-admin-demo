@@ -9,7 +9,7 @@
       :rules="rules"
     >
       <el-form-item label="资源" prop="fileUrl">
-        <UploadVod
+        <VodUpload
           v-if="curTab == 'AUDIO_VIDEO'"
           v-model="form.fileUrl"
           v-bind="uploadProps"
@@ -62,7 +62,7 @@
 
 <script setup>
   import UploadImage from '@/components/Upload/index.vue';
-  import UploadVod from '@/components/Upload/UploadVod.vue';
+  import VodUpload from '@/components/Upload/VodUpload.vue';
   // import { Plus } from '@element-plus/icons-vue';
   import MediaLibrary from '@/api/media-library';
 
