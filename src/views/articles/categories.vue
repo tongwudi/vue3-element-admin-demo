@@ -82,6 +82,20 @@
             :model="form"
             :rules="rules"
           >
+            <el-form-item label="封面">
+              <div class="upload" @click="openLibraryDialog">
+                <div class="upload-wrapper" v-if="!form.pictureUrl">
+                  <el-icon :size="24"><Plus /></el-icon>
+                  <span>选择封面</span>
+                </div>
+                <template v-else>
+                  <el-image
+                    style="width: 100%; height: 100%"
+                    :src="form.pictureUrl"
+                  />
+                </template>
+              </div>
+            </el-form-item>
             <el-form-item label="名称" prop="name">
               <el-input v-model="form.name" placeholder="请输入名称" />
             </el-form-item>
@@ -114,9 +128,12 @@
       </el-col>
     </el-row>
   </div>
+
+  <MediaLibraryDialog v-model="showDialog" is-dialog @confirm="handleChoose" />
 </template>
 
 <script setup>
+  import MediaLibraryDialog from '@/components/MediaLibraryDialog/index.vue';
   import { ArrowLeft, Plus, Remove, CirclePlus } from '@element-plus/icons-vue';
   import Articles from '@/api/articles';
 
@@ -133,6 +150,16 @@
     name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
     parentId: [{ required: true, message: '请选择上级分类', trigger: 'change' }]
   });
+
+  const showDialog = ref(false);
+
+  const openLibraryDialog = () => {
+    showDialog.value = true;
+  };
+
+  const handleChoose = url => {
+    form.value.pictureUrl = url;
+  };
 
   const getTreeData = async () => {
     const res = await Articles.queryTreeById({ id: '' });

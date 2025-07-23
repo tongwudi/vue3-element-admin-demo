@@ -6,6 +6,7 @@
     :close-on-press-escape="false"
     class="media-drawer"
     header-class="drawer-header"
+    @open="handleOpen"
   >
     <template #header>
       <span class="drawer-header_title">
@@ -39,12 +40,8 @@
         <div class="drawer-body_left">
           <div class="wrapper">
             <el-form-item>
-              <div class="upload">
-                <div
-                  v-if="!form.coverImgUrl"
-                  class="upload-wrapper"
-                  @click="openLibraryDialog('IMAGE')"
-                >
+              <div class="upload" @click="openLibraryDialog('IMAGE')">
+                <div v-if="!form.coverImgUrl" class="upload-wrapper">
                   <el-icon :size="24"><Plus /></el-icon>
                   <span>选择封面</span>
                 </div>
@@ -52,7 +49,6 @@
                   <el-image
                     style="width: 100%; height: 100%"
                     :src="form.coverImgUrl"
-                    @click="openLibraryDialog('IMAGE')"
                   />
                 </template>
               </div>
@@ -122,7 +118,7 @@
             </el-form-item>
             <el-form-item label="课程介绍" prop="content">
               <WangEditor
-                height="400px"
+                ref="editorRef"
                 v-model="form.content"
                 @customBrowseAndUpload="customBrowseAndUpload"
               />
@@ -237,8 +233,7 @@
   } from '@element-plus/icons-vue';
   import Media from '@/api/media';
   import { fetchTxtContent } from '@/utils/index';
-  import { getFileSign, saveManageFile } from '@/api/index';
-  import axios from 'axios';
+  import { uploadToOSS } from '@/hooks/useUpload';
 
   const props = defineProps({
     row: {
@@ -256,11 +251,20 @@
 
   const activeTab = ref('IMAGE');
 
+  const editorRef = ref();
+  const validatorContent = (rule, value, callback) => {
+    if (!value || editorRef.value.isEmpty()) {
+      callback(new Error('请输入内容'));
+    } else {
+      callback();
+    }
+  };
+
   const formRef = ref(null);
   const form = ref({});
   const rules = reactive({
     title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-    content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
+    content: [{ validator: validatorContent, trigger: 'change' }]
   });
   const treeData = ref([]);
   const showDialog = ref(false);
@@ -289,15 +293,20 @@
     inputValue.value = '';
   };
 
-  const getDetail = async () => {
-    const res = await Media.queryDetailById({ id: props.row.id });
-    const content = await fetchTxtContent(res.contentJsonUrl);
-    form.value = { ...res, weightValue: +res.weightValue, content };
+  const handleOpen = () => {
+    resetForm();
+    getData();
   };
 
   const getTreeData = async () => {
     const res = await Media.queryTreeById({ id: '' });
     treeData.value = res;
+  };
+
+  const getDetail = async () => {
+    const res = await Media.queryDetailById({ id: props.row.id });
+    const content = await fetchTxtContent(res.introductionFileUrl);
+    form.value = { ...res, weightValue: +res.weightValue, content };
   };
 
   const getChapterTreeData = async () => {
@@ -323,7 +332,7 @@
   const handleChoose = url => {
     if (cachedInsertFn) {
       cachedInsertFn(url);
-      cachedInsertFn = null
+      cachedInsertFn = null;
       return;
     }
     if (showChapterDialog.value) {
@@ -395,7 +404,7 @@
     formRef.value.resetFields();
   };
 
-  let isDirty = false;
+  let isDirty = false; // 表单是否有修改
   const handleInputChange = () => {
     isDirty = true;
   };
@@ -431,43 +440,17 @@
     ElMessage.success('状态修改成功');
   };
 
-  const uploadToOSS = async (signData, file) => {
-    const formData = new FormData();
-    formData.append('name', signData.newName);
-    formData.append('key', signData.dir + signData.newName);
-    formData.append('policy', signData.policy);
-    formData.append('OSSAccessKeyId', signData.accessid);
-    formData.append('success_action_status', '200');
-    formData.append('signature', signData.signature);
-    formData.append('file', file);
-
-    await axios.post('https://llwskt.oss-cn-shanghai.aliyuncs.com/', formData);
-  };
-
   const uplpadBlobToOSS = content => {
     return new Promise(async (resolve, reject) => {
       try {
         const blob = new Blob([content], {
           type: 'text/html; charset=utf-8'
         });
-        const fileName = `media-${Date.now()}.txt`; // 生成文件名
         const path = 'Media/File';
-        // 1.获取OSS上传凭证
-        const signData = await getFileSign({ path, fileName });
-        // 2.上传文件到OSS
-        await uploadToOSS(signData, blob);
-        // 3.记录文件信息到数据库
-        const params = {
-          id: signData.fileId,
-          filePath: signData.dir,
-          oldName: fileName,
-          newName: signData.newName,
-          fileSize: blob.size,
-          format: '',
-          isSaveThumbnail: 'Y'
-        };
-        await saveManageFile(params);
-        resolve({ ...signData, fileName });
+        // 生成文件名
+        blob.name = `media-${Date.now()}.txt`;
+        const signData = await uploadToOSS(path, blob);
+        resolve({ ...signData, fileName: blob.name });
       } catch (err) {
         reject(err);
       }
@@ -483,8 +466,8 @@
       const params = {
         ...obj,
         id,
-        contentJsonId: res.fileId,
-        contentJsonUrl: res.fileUrl
+        introductionFileId: res.fileId,
+        introductionFileUrl: res.fileUrl
       };
       const fetch = id ? Media.updateById : Media.add;
       await fetch(params);
@@ -493,14 +476,6 @@
       emit('submit');
     });
   };
-
-  watch(visible, val => {
-    if (!val) {
-      form.value = {};
-      return;
-    }
-    getData();
-  });
 </script>
 
 <style lang="scss">

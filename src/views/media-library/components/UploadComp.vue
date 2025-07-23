@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-  import UploadImage from '@/components/Upload/index.vue';
+  import UploadImage from '@/components/Upload/SingleUpload.vue';
   import VodUpload from '@/components/Upload/VodUpload.vue';
   // import { Plus } from '@element-plus/icons-vue';
   import MediaLibrary from '@/api/media-library';
@@ -100,8 +100,8 @@
 
   const getFileData = file => {
     form.value.fileId = file.fileId;
-    form.value.name = file.fileName;
-    form.value.fileSize = file.fileSize;
+    form.value.name = file.name;
+    form.value.fileSize = file.size;
   };
 
   const getDetail = async id => {

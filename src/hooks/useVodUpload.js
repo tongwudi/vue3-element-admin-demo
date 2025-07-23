@@ -9,7 +9,7 @@ export function useVodUpload(option = {}) {
     maxFileSize = 500,
     limit = 1,
     onSuccess: customSuccess,
-    onError: customError
+    onRemove: customRemove
   } = option
 
   const uploader = ref(null);
@@ -45,14 +45,18 @@ export function useVodUpload(option = {}) {
     ElMessage.warning('最多只能上传' + limit + '张图片');
   }
 
-  const onSuccess = (res) => {
-    customSuccess(res)
+  const onError = (err) => {
+    ElMessage.error('上传失败: ' + err.message)
+  }
+
+  const onSuccess = (res, uploadFile) => {
+    const { uid, name, size } = uploadFile
+    customSuccess({ ...res, uid, name, size })
     // ElMessage.success('上传成功')
   }
 
-  const onError = (err) => {
-    customError(err)
-    ElMessage.error('上传失败: ' + err.message)
+  const onRemove = () => {
+    customRemove()
   }
 
   const httpRequest = options => {
@@ -138,7 +142,7 @@ export function useVodUpload(option = {}) {
           };
           await saveManageFile(params);
           // 调用resolve返回上传结果
-          uploadResolve({ ...signData, fileName: file.name, fileSize: file.size });
+          uploadResolve(signData);
           statusText.value = '文件上传成功!';
           ElMessage.success('文件上传成功!')
         } catch (error) {
@@ -193,8 +197,9 @@ export function useVodUpload(option = {}) {
       beforeUpload,
       httpRequest,
       onExceed,
+      onError,
       onSuccess,
-      onError
+      onRemove
     },
   }
 }

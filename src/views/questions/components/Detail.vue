@@ -123,12 +123,17 @@
     content: [{ required: true, message: '请输入回复内容', trigger: 'change' }]
   });
 
+  const statusOptions = [
+    { text: '待回答', value: 'NOANSWER', type: 'danger' },
+    { text: '已回答', value: 'ANSWERED', type: 'success' }
+  ];
+
   const renderStatus = status => {
-    const obj = {
-      ANSWERED: { type: 'success', text: '已回答' },
-      NOANSWER: { type: 'danger', text: '待回答' }
-    };
-    return obj[status] || obj.NOANSWER;
+    const obj = statusOptions.reduce((obj, item) => {
+      obj[item.value] = item;
+      return obj;
+    }, {});
+    return obj[status] || statusOptions[0];
   };
 
   const handleQuery = () => {

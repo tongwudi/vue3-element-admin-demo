@@ -44,12 +44,8 @@
         <div class="drawer-body_left">
           <div class="wrapper">
             <el-form-item>
-              <div class="upload">
-                <div
-                  v-if="!form.coverImgUrl"
-                  class="upload-wrapper"
-                  @click="showDialog = true"
-                >
+              <div class="upload" @click="showDialog = true">
+                <div v-if="!form.coverImgUrl" class="upload-wrapper">
                   <el-icon :size="24"><Plus /></el-icon>
                   <span>选择封面</span>
                 </div>
@@ -57,7 +53,6 @@
                   <el-image
                     style="width: 100%; height: 100%"
                     :src="form.coverImgUrl"
-                    @click="showDialog = true"
                   />
                 </template>
               </div>
@@ -153,7 +148,7 @@
               />
             </el-form-item>
             <el-form-item prop="content">
-              <WangEditor v-model="form.content" height="400px" />
+              <WangEditor ref="editorRef" v-model="form.content" />
             </el-form-item>
           </div>
         </div>
@@ -194,7 +189,7 @@
     </el-form>
   </el-drawer>
 
-  <MediaLibraryDialog v-model="showDialog" is-dialog @confim="handleChoose" />
+  <MediaLibraryDialog v-model="showDialog" is-dialog @confirm="handleChoose" />
 </template>
 
 <script setup>
@@ -203,8 +198,7 @@
   import { ArrowLeft } from '@element-plus/icons-vue';
   import Articles from '@/api/articles';
   import { fetchTxtContent } from '@/utils/index';
-  import { getFileSign, saveManageFile } from '@/api/index';
-  import axios from 'axios';
+  import { uploadToOSS } from '@/hooks/useUpload';
 
   const props = defineProps({
     row: {
@@ -220,11 +214,20 @@
     default: false
   });
 
+  const editorRef = ref();
+  const validatorContent = (rule, value, callback) => {
+    if (!value || editorRef.value.isEmpty()) {
+      callback(new Error('请输入内容'));
+    } else {
+      callback();
+    }
+  };
+
   const formRef = ref(null);
   const form = ref({});
   const rules = reactive({
     title: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-    content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
+    content: [{ validatorContent, trigger: 'blur' }]
   });
   const treeData = ref([]);
   const showDialog = ref(false);
@@ -241,15 +244,15 @@
     !showPreviewBtn.value && (openPreview.value = false);
   });
 
+  const getTreeData = async () => {
+    const res = await Articles.queryTreeById({ id: '' });
+    treeData.value = res;
+  };
+
   const getDetail = async () => {
     const res = await Articles.queryDetailById({ id: props.row.id });
     const content = await fetchTxtContent(res.contentJsonUrl);
     form.value = { ...res, weightValue: +res.weightValue, content };
-  };
-
-  const getTreeData = async () => {
-    const res = await Articles.queryTreeById({ id: '' });
-    treeData.value = res;
   };
 
   const getData = () => {
@@ -270,7 +273,7 @@
     formRef.value.resetFields();
   };
 
-  let isDirty = false;
+  let isDirty = false; // 表单是否有修改
   const handleInputChange = () => {
     isDirty = true;
   };
@@ -306,43 +309,17 @@
     ElMessage.success('状态修改成功');
   };
 
-  const uploadToOSS = async (signData, file) => {
-    const formData = new FormData();
-    formData.append('name', signData.newName);
-    formData.append('key', signData.dir + signData.newName);
-    formData.append('policy', signData.policy);
-    formData.append('OSSAccessKeyId', signData.accessid);
-    formData.append('success_action_status', '200');
-    formData.append('signature', signData.signature);
-    formData.append('file', file);
-
-    await axios.post('https://llwskt.oss-cn-shanghai.aliyuncs.com/', formData);
-  };
-
   const uplpadBlobToOSS = content => {
     return new Promise(async (resolve, reject) => {
       try {
         const blob = new Blob([content], {
           type: 'text/html; charset=utf-8'
         });
-        const fileName = `articles-${Date.now()}.txt`; // 生成文件名
         const path = 'Articles/File';
-        // 1.获取OSS上传凭证
-        const signData = await getFileSign({ path, fileName });
-        // 2.上传文件到OSS
-        await uploadToOSS(signData, blob);
-        // 3.记录文件信息到数据库
-        const params = {
-          id: signData.fileId,
-          filePath: signData.dir,
-          oldName: fileName,
-          newName: signData.newName,
-          fileSize: blob.size,
-          format: '',
-          isSaveThumbnail: 'Y'
-        };
-        await saveManageFile(params);
-        resolve({ ...signData, fileName });
+        // 生成文件名
+        blob.name = `articles-${Date.now()}.txt`;
+        const signData = await uploadToOSS(path, blob);
+        resolve({ ...signData, fileName: blob.name });
       } catch (err) {
         reject(err);
       }

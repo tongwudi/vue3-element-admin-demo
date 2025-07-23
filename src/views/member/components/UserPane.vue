@@ -81,7 +81,7 @@
       obj[item.value] = item;
       return obj;
     }, {});
-    return obj[status] || statusOptions[0].value;
+    return obj[status] || statusOptions[0];
   };
 
   const getData = () => {

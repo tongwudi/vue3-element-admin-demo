@@ -18,12 +18,8 @@
       <div class="chapter-dialog">
         <div class="chapter-dialog_top">
           <el-form-item label="图片">
-            <div class="upload">
-              <div
-                v-if="!form.coverImgUrl"
-                class="upload-wrapper"
-                @click="openLibrary('IMAGE')"
-              >
+            <div class="upload" @click="openLibrary('IMAGE')">
+              <div v-if="!form.coverImgUrl" class="upload-wrapper">
                 <el-icon :size="24"><Plus /></el-icon>
                 <span>选择封面</span>
               </div>
@@ -31,7 +27,6 @@
                 <el-image
                   style="width: 100%; height: 100%"
                   :src="form.coverImgUrl"
-                  @click="openLibrary('IMAGE')"
                 />
               </template>
             </div>
