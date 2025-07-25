@@ -112,9 +112,9 @@
     pageSize: 8,
     pageNum: 1
   });
-  const treeData = ref([]);
-  const tableData = ref([]);
   const total = ref(0);
+  const tableData = ref([]);
+  const treeData = ref([]);
 
   const statusOptions = [
     { text: '待回答', value: 'NOANSWER', type: 'danger' },

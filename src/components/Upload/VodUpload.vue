@@ -1,9 +1,5 @@
 <template>
-  <el-upload
-    class="custom-upload-vod"
-    v-model="modelValue"
-    v-bind="uploadProps"
-  >
+  <el-upload class="custom-upload-vod" v-bind="uploadProps">
     <el-button type="primary">选择文件</el-button>
     <template #tip>
       <div class="el-upload__tip text-red">
@@ -24,12 +20,8 @@
       default: 500
     }
   });
-
   const attrs = useAttrs();
-  const modelValue = defineModel('modelValue', {
-    type: String,
-    default: ''
-  });
+  const modelValue = defineModel('modelValue');
   const emit = defineEmits(['onSuccess']);
 
   const { uploadProps } = useVodUpload({

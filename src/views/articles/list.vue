@@ -111,9 +111,9 @@
     pageSize: 8,
     pageNum: 1
   });
-  const treeData = ref([]);
-  const tableData = ref([]);
   const total = ref(0);
+  const tableData = ref([]);
+  const treeData = ref([]);
 
   const goPage = () => {
     router.push('/questions/categories');

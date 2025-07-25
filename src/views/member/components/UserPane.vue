@@ -67,9 +67,9 @@
     pageSize: 20,
     pageNum: 1
   });
-  // const multipleSelection = ref([]);
-  const tableData = ref([]);
   const total = ref(0);
+  const tableData = ref([]);
+  // const multipleSelection = ref([]);
 
   const statusOptions = [
     { text: '未认证', value: 'UNVERIFIED', type: 'danger' },

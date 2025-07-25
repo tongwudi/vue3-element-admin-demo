@@ -116,8 +116,8 @@
   const handleChangeCom = obj => {
     curComponent.value = components[obj.type];
     nextTick(() => {
-      if (dynamicComponentRef.value?.getData) {
-        dynamicComponentRef.value.getData();
+      if (dynamicComponentRef.value?.getTableData) {
+        dynamicComponentRef.value.getTableData();
       }
       if (dynamicComponentRef.value?.getDetail && obj.id) {
         dynamicComponentRef.value.getDetail(obj.id);
@@ -199,8 +199,8 @@
 
   // 监听树节点和 tabs 变化，触发数据更新
   watch([currentNode, currentTab], ([node, tab]) => {
-    if (node && tab && dynamicComponentRef.value?.getData) {
-      dynamicComponentRef.value.getData();
+    if (node && tab && dynamicComponentRef.value?.getTableData) {
+      dynamicComponentRef.value.getTableData();
     }
   });
 

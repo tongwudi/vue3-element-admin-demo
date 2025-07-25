@@ -22,7 +22,6 @@
   <div class="card-box">
     <el-table
       style="height: 100%"
-      ref="tableRef"
       v-loading="loading"
       :data="tableData"
       :highlight-current-row="isDialog"
@@ -92,6 +91,14 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <Pagination
+      v-if="total > 0"
+      v-model:total="total"
+      v-model:page="queryParams.pageNum"
+      v-model:limit="queryParams.pageSize"
+      @pagination="getTableData"
+    />
     <!-- <el-row :gutter="20">
       <el-col :md="8" :lg="6" v-for="(item, index) in items" :key="index">
         <div class="grid-item">
@@ -130,9 +137,10 @@
 </template>
 
 <script setup>
+  import Pagination from '@/components/Pagination/index.vue';
   import {
     RefreshRight,
-    Search,
+    // Search,
     View,
     Edit,
     Delete
@@ -157,23 +165,30 @@
   const curTab = inject('currentTab');
 
   const loading = ref(false);
-  const searchVal = ref('');
-  const tableRef = ref();
+  // const searchVal = ref('');
+
+  const queryParams = reactive({
+    pageSize: 10,
+    pageNum: 1
+  });
+  const total = ref(0);
   const tableData = ref([]);
   const selectedRows = ref([]);
   const selectedId = ref();
   // const maskIndex = ref(-1);
   // const isAllCheck = ref(false);
 
-  const getData = () => {
+  const getTableData = () => {
     loading.value = true;
     const params = {
+      ...queryParams,
       classificationId: curNode.value.id == 'all' ? '' : curNode.value.id,
       mediaType: curTab.value
     };
     MediaLibrary.queryPage(params)
       .then(res => {
         tableData.value = res.records;
+        total.value = res.total;
       })
       .finally(() => {
         loading.value = false;
@@ -181,7 +196,7 @@
   };
 
   const handleRefresh = () => {
-    getData();
+    getTableData();
   };
 
   const handleCurrentChange = row => {
@@ -207,7 +222,7 @@
       .then(async () => {
         await MediaLibrary.deleteFile({ id: row.id });
         ElMessage.success('删除成功');
-        getData();
+        getTableData();
       })
       .catch(() => {});
   };
@@ -228,7 +243,7 @@
     emit('change', { type: 'upload' });
   };
 
-  defineExpose({ getData });
+  defineExpose({ getTableData });
 </script>
 
 <style lang="scss" scoped>
@@ -240,7 +255,9 @@
   }
 
   .card-box {
-    height: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow: auto;
   }
 
