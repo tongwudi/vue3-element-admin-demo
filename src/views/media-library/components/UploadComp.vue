@@ -102,6 +102,7 @@
     form.value.fileId = file.fileId;
     form.value.name = file.name;
     form.value.fileSize = file.size;
+    // form.value.duration = file.duration;
   };
 
   const getDetail = async id => {

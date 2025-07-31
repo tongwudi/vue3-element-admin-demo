@@ -330,11 +330,12 @@
     if (!formRef.value) return;
     formRef.value.validate(async valid => {
       if (!valid) return;
-      const { id, content, ...obj } = form.value;
+      const { id, content, status, ...obj } = form.value;
       const res = await uplpadBlobToOSS(content);
       const params = {
         ...obj,
         id,
+        status: status || 'DRAFT',
         contentJsonId: res.fileId,
         contentJsonUrl: res.fileUrl
       };

@@ -1,5 +1,6 @@
 <template>
   <el-dialog
+    style="min-width: 800px"
     v-model="visible"
     title="添加媒体"
     append-to-body
@@ -31,7 +32,7 @@
               </template>
             </div>
           </el-form-item>
-          <div>
+          <div style="flex: 1; overflow: hidden">
             <el-form-item label="名称" prop="name">
               <el-input v-model="form.name" />
             </el-form-item>
@@ -45,14 +46,14 @@
                 node-key="id"
               />
             </el-form-item>
-            <el-form-item label="媒体资源" prop="media">
-              <el-input v-model="form.media" readonly>
+            <el-form-item label="媒体资源" prop="mediaName">
+              <el-input v-model="form.mediaName" readonly>
                 <template #prepend>
                   <el-button @click="openLibrary('AUDIO_VIDEO')">
-                    {{ form.media ? '重选' : '从媒体库选择' }}
+                    {{ form.mediaName ? '重选' : '从媒体库选择' }}
                   </el-button>
                 </template>
-                <template v-if="form.media" #append>03:00</template>
+                <!-- <template v-if="form.mediaName" #append>03:00</template> -->
               </el-input>
             </el-form-item>
           </div>
@@ -89,6 +90,17 @@
     default: false
   });
 
+  watch(
+    () => props.source,
+    val => {
+      if (val.mediaType == 'IMAGE') {
+        form.value.coverImgUrl = val.fileUrl;
+      } else {
+        form.value.mediaName = val.name;
+      }
+    }
+  );
+
   const emit = defineEmits(['openLibrary', 'confirm']);
 
   const formRef = ref(null);
@@ -98,7 +110,7 @@
     classificationTypeId: [
       { required: true, message: '请选择上级目录', trigger: 'change' }
     ],
-    media: [{ required: true, message: '请选择媒体资源', trigger: 'change' }]
+    mediaName: [{ required: true, message: '请选择媒体资源', trigger: 'blur' }]
   });
   const treeData = computed(() => [
     { name: '全部', id: 'all', children: props.option }

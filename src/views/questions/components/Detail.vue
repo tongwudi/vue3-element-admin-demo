@@ -141,12 +141,14 @@
   };
 
   const getQuestionDetail = async () => {
-    const res = await Questions.queryDetailById({ id: props.params?.id });
+    const res = await Questions.queryQuestionById({ id: props.params?.id });
     question.value = res || {};
   };
 
   const getAnswerData = async () => {
-    const res = await Questions.queryAnswerList({ id: props.params?.id });
+    const res = await Questions.queryAnswerList({
+      questionId: props.params?.id
+    });
     answerList.value = res || [];
   };
 
@@ -173,8 +175,12 @@
   const handleSubmit = () => {
     formRef.value.validate(async valid => {
       if (!valid) return;
-      const { id, ...obj } = form.value;
-      const params = { ...obj, id };
+      const { id, questionId, ...obj } = form.value;
+      const params = {
+        ...obj,
+        id,
+        questionId: questionId || question.value.id
+      };
       const fetch = id ? Questions.updateAnswerById : Questions.addAnswer;
       await fetch(params);
       ElMessage.success(id ? '更新成功' : '提交成功');

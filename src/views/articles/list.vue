@@ -57,6 +57,13 @@
         </template>
       </el-table-column>
       <el-table-column prop="title" label="标题" />
+      <el-table-column label="状态" width="120" align="center">
+        <template #default="{ row }">
+          <el-tag :type="renderStatus(row.status).type">
+            {{ renderStatus(row.status).text }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column
         prop="updateTime"
         label="更新时间"
@@ -104,7 +111,6 @@
   const showDrawer = ref(false);
   const rowParams = ref({});
 
-
   const loading = ref(true);
   const searchForm = reactive({});
   const queryParams = reactive({
@@ -114,6 +120,19 @@
   const total = ref(0);
   const tableData = ref([]);
   const treeData = ref([]);
+
+  const statusOptions = [
+    { text: '草稿', value: 'DRAFT', type: 'danger' },
+    { text: '已发布', value: 'PUBLISHED', type: 'success' }
+  ];
+
+  const renderStatus = status => {
+    const obj = statusOptions.reduce((obj, item) => {
+      obj[item.value] = item;
+      return obj;
+    }, {});
+    return obj[status] || statusOptions[0];
+  };
 
   const goPage = () => {
     router.push('/questions/categories');

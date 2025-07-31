@@ -22,7 +22,7 @@
         <el-form-item>
           <el-select
             style="width: 120px"
-            v-model="searchForm.status"
+            v-model="searchForm.replyStatus"
             placeholder="请选择状态"
             clearable
           >
@@ -51,12 +51,6 @@
           {{ row.charge == 'N' ? '否' : '是' }}
         </template>
       </el-table-column>
-      <el-table-column
-        label="提问时间"
-        width="200"
-        prop="createTime"
-        align="center"
-      />
       <el-table-column label="状态" width="150" align="center">
         <template #default="{ row }">
           <el-tag :type="renderStatus(row.replyStatus).type">
@@ -64,6 +58,12 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column
+        label="提问时间"
+        width="200"
+        prop="createTime"
+        align="center"
+      />
       <el-table-column label="操作" width="250" align="center">
         <template #default="{ row }">
           <el-button size="small" type="primary" @click="handleEdit(row)">

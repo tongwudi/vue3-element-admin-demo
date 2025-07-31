@@ -82,12 +82,31 @@ export function useVodUpload(option = {}) {
       try {
         // 等待上传完成
         const result = await uploadPromise;
+        // result.duration = await getVideoDuration(file)
         resolve(result);
       } catch (error) {
         reject(error);
       }
     })
   };
+
+  // const getVideoDuration = (file) => {
+  //   return new Promise((resolve, reject) => {
+  //     const video = document.createElement('video');
+  //     video.preload = 'metadata';
+
+  //     video.onloadedmetadata = () => {
+  //       window.URL.revokeObjectURL(video.src);
+  //       resolve(video.duration);
+  //     };
+
+  //     video.onerror = () => {
+  //       reject(new Error('无法获取视频时长'));
+  //     };
+
+  //     video.src = window.URL.createObjectURL(file);
+  //   });
+  // }
 
   const createUploader = (uploadResolve, uploadReject) => {
     let signData;

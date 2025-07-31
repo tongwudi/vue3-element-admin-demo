@@ -47,7 +47,7 @@
 
   const handleConfirm = () => {
     const { fileUrl } = mediaInfo.value;
-    emit('confirm', fileUrl);
+    emit('confirm', fileUrl, mediaInfo.value);
     closeDialog();
   };
 

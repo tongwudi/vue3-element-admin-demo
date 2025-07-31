@@ -110,9 +110,9 @@
             <el-form-item label="课程名" prop="title">
               <el-input v-model="form.title" placeholder="请输入课程名" />
             </el-form-item>
-            <el-form-item label="副标题" prop="description">
+            <el-form-item label="副标题" prop="keyWord">
               <el-input
-                v-model="form.description"
+                v-model="form.keyWord"
                 placeholder="副标题、关键词或者简单描述，可不填"
               />
             </el-form-item>
@@ -272,7 +272,7 @@
   const chapterTreeRef = ref();
   const chapterTreeData = ref([]);
   const showChapterDialog = ref(false);
-  const chapterSource = ref('');
+  const chapterSource = ref({});
 
   const inputRef = ref(null);
   const inputValue = ref('');
@@ -329,14 +329,14 @@
     showDialog.value = true;
   };
 
-  const handleChoose = url => {
+  const handleChoose = (url, info) => {
     if (cachedInsertFn) {
       cachedInsertFn(url);
       cachedInsertFn = null;
       return;
     }
     if (showChapterDialog.value) {
-      chapterSource.value = url;
+      chapterSource.value = { ...info };
       return;
     }
     form.value.coverImgUrl = url;
@@ -461,11 +461,12 @@
     if (!formRef.value) return;
     formRef.value.validate(async valid => {
       if (!valid) return;
-      const { id, content, ...obj } = form.value;
+      const { id, content, status, ...obj } = form.value;
       const res = await uplpadBlobToOSS(content);
       const params = {
         ...obj,
         id,
+        status: status || 'DRAFT',
         introductionFileId: res.fileId,
         introductionFileUrl: res.fileUrl
       };

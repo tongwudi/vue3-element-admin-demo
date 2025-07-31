@@ -44,7 +44,7 @@ const Questions = {
   },
 
   // 问题-根据id查询详情
-  queryDetailById(params) {
+  queryQuestionById(params) {
     return request({
       url: '/api/resource/query/wowquestion/queryDetailById',
       method: "GET",
@@ -52,7 +52,7 @@ const Questions = {
     })
   },
 
-  // 回答-根据id查询列表
+  // 回答-根据问题id查询列表
   queryAnswerList(params) {
     return request({
       url: '/api/resource/query/wowquestionanswer/queryList',
